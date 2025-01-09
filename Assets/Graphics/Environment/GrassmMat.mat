@@ -74,7 +74,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _TerrainColor:
-        m_Texture: {fileID: 8400000, guid: b56a437b11b74a3419666baad5ee2cf7, type: 2}
+        m_Texture: {fileID: 8600000, guid: 617ce9501029b8c49984216cf7a3ff9d, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _WindTexture:
@@ -127,8 +127,12 @@ Material:
     - _SrcBlendAlpha: 1
     - _Surface: 0
     - _Terrain: 0
-    - _TerrainOffset: 0
+    - _TerrainOffset: -0
+    - _TerrainOffsetX: 0
+    - _TerrainOffsetY: 0
     - _TerrainSize: 50
+    - _TerrainSizeX: 50
+    - _TerrainSizeY: 50
     - _USETERRAINCOLOR: 1
     - _WindHeight: 0.5
     - _WindIntensity: 0.2
