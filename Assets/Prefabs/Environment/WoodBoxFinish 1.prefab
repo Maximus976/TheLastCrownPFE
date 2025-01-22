@@ -636,7 +636,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   health: 100
   damageOnClick: 25
-  destructionEffect: {fileID: 8902093753820357178, guid: 0aab7b815f8f0d54a8d449c8d5c89abe,
+  destructionEffect: {fileID: 8902093753820357178, guid: 377f528e833a09343b9a5b94815535b0,
     type: 3}
   destructionEffect2: {fileID: 2536447958634885616, guid: cd589b2c14ab2bb4aa4279221a962224,
     type: 3}

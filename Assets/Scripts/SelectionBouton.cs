@@ -90,4 +90,11 @@ public class SelectionBouton : MonoBehaviour
             isHovering[button] = false;
         }
     }
+    public void ResetButtons()
+    {
+        foreach(Button button in buttons)
+        {
+            isHovering[button] = false;
+        }
+    }
 }
