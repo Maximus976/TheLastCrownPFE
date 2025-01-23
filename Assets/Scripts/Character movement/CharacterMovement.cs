@@ -12,7 +12,7 @@ public class CharacterMovement : MonoBehaviour
     [SerializeField] private float dashTime = 0.2f;
     [SerializeField] private float dashCooldown = 1f;
 
-    public float attackDelay = 0.5f; // Time before attack ends
+    public float attackDelay = 0.5f;
     public float attackCooldown = 1f;
 
     private Rigidbody rb;
@@ -27,7 +27,7 @@ public class CharacterMovement : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody>();
-        rb.freezeRotation = true; // Prevent unwanted rotation from physics
+        rb.freezeRotation = true;
     }
 
     void Update()
@@ -58,30 +58,23 @@ public class CharacterMovement : MonoBehaviour
 
     private void HandleMovement()
     {
-        // Réinitialisation des déplacements
         float moveHorizontal = 0f;
         float moveVertical = 0f;
 
-        // Détection des entrées clavier (ZQSD)
         if (UnityEngine.Input.GetKey(KeyCode.W)) moveVertical += 1f;   // Avancer (Z)
         if (UnityEngine.Input.GetKey(KeyCode.S)) moveVertical -= 1f;   // Reculer (S)
         if (UnityEngine.Input.GetKey(KeyCode.A)) moveHorizontal -= 1f; // Gauche (Q)
         if (UnityEngine.Input.GetKey(KeyCode.D)) moveHorizontal += 1f; // Droite (D)
 
-        // Direction brute (locale)
         Vector3 localDirection = new Vector3(moveHorizontal, 0, moveVertical).normalized;
 
-        // Récupération de l'orientation de la caméra
         Transform cameraTransform = Camera.main.transform;
 
-        // Calcul des axes projetés sur le plan XZ
         Vector3 forward = Vector3.Scale(cameraTransform.forward, new Vector3(1, 0, 1)).normalized;
         Vector3 right = Vector3.Scale(cameraTransform.right, new Vector3(1, 0, 1)).normalized;
 
-        // Transformation des axes locaux vers les axes globaux
         moveDirection = localDirection.z * forward + localDirection.x * right;
 
-        // Appliquer la rotation si le joueur se déplace
         if (moveDirection != Vector3.zero)
         {
             Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
@@ -93,14 +86,8 @@ public class CharacterMovement : MonoBehaviour
     {
         isAttacking = true;
         lastAttackTime = Time.time;
-
-        // Simulate an attack delay
         yield return new WaitForSeconds(attackDelay);
-
-        // Attack logic (e.g., animations or collision checks can go here)
         Debug.Log("Attack performed!");
-
-        // End attack state
         isAttacking = false;
     }
 
@@ -121,7 +108,7 @@ public class CharacterMovement : MonoBehaviour
         rb.velocity = Vector3.zero; // Stop dash
         isDashing = false;
 
-        // Wait for cooldown
+        // Temps d'attente du cooldown
         yield return new WaitForSeconds(dashCooldown);
         canDash = true;
     }
