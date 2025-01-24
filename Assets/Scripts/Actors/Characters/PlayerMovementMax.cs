@@ -27,7 +27,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    void FixedUpdate()
+    /*void FixedUpdate()
     {
         // Déplacement du joueur
         if (movement.magnitude > 0.1f)
@@ -38,7 +38,7 @@ public class PlayerMovement : MonoBehaviour
             Quaternion targetRotation = Quaternion.LookRotation(movement, Vector3.up);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, 0.1f);
         }
-    }
+    }*/
 }
 
 

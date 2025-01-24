@@ -6,17 +6,24 @@ public class IsometricCameraFollow : MonoBehaviour
 {
     public Transform target;
     public Vector3 offset = new Vector3(0, 10, -15);
-    public float followSpeed = 5f;
+    public float followSpeed = 10f;
+
+    void Start()
+    {
+        if (target != null)
+        {
+            transform.position = target.position + offset;
+        }
+    }
 
     void LateUpdate()
     {
         if (target != null)
         {
-            // Calculate the target position based on the player's position and the offset.
             Vector3 targetPosition = target.position + offset;
 
-            // Smoothly move the camera towards the target position.
-            transform.position = Vector3.Lerp(transform.position, targetPosition, followSpeed * Time.deltaTime);
+            // Utilisation de MoveTowards pour un suivi plus direct et fluide
+            transform.position = Vector3.MoveTowards(transform.position, targetPosition, followSpeed * Time.deltaTime);
         }
     }
 }
