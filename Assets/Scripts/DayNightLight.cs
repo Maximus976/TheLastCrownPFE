@@ -108,19 +108,18 @@ public class DayNightLight : MonoBehaviour
             yield return new WaitForSeconds(fireflyDelay);
         }
 
-        // Activation du son des insectes
+        // Activation du son des insectes et des sons de jour/nuit en boucle
         if (targetFactor > 0.5f) // Si c'est la nuit
         {
             StartCoroutine(FadeInSounds(insectAudioSources));
-            StartCoroutine(PlayRandomInsectSounds());  // Jouer des sons aléatoires
+            StartCoroutine(FadeOutSounds(dayAudioSources));
         }
         else // Si c'est le jour
         {
+            StartCoroutine(FadeInSounds(dayAudioSources));
             StartCoroutine(FadeOutSounds(insectAudioSources));
-            StartCoroutine(FadeInSounds(dayAudioSources)); // Transition vers les sons de la journée
         }
     }
-
     IEnumerator SmoothLightIntensity(Light light, float targetIntensity)
     {
         float duration = 0f;
@@ -138,24 +137,21 @@ public class DayNightLight : MonoBehaviour
 
     IEnumerator FadeInSounds(AudioSource[] audioSources)
     {
-        // Fade-in pour chaque source audio
         for (int i = 0; i < audioSources.Length; i++)
         {
-            // S'assurer que l'AudioSource est au volume initial
             audioSources[i].volume = 0f;
-            audioSources[i].Play();  // Joue le son
+            if (!audioSources[i].isPlaying)
+                audioSources[i].Play();  // Démarrer la lecture du son
 
-            // Fade-in pour augmenter le volume
             while (audioSources[i].volume < maxSoundVolume)
             {
                 audioSources[i].volume += Time.deltaTime / soundFadeDuration;
                 yield return null;
             }
 
-            audioSources[i].volume = maxSoundVolume;  // Assurer que le volume final est la valeur maximale
+            audioSources[i].volume = maxSoundVolume;  // Assurer que le volume atteint la valeur maximale
         }
     }
-
     IEnumerator FadeOutSounds(AudioSource[] audioSources)
     {
         // Fade-out pour chaque source audio

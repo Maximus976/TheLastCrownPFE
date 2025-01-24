@@ -16,12 +16,13 @@ public class Mannequin : MonoBehaviour
     private Rigidbody rb;
     private FixedJoint[] joints;        // Tableau des FixedJoint attachés au mannequin
     private int hitCount = 0;           // Compteur de coups pour détachement
-    private int currentHealth;          // Points de vie actuels
+    public int currentHealth;          // Points de vie actuels
     public Vector3 initialPosition; // Ajouter cette variable pour stocker la position initiale du mannequin
     public Quaternion initialRotation;
 
     public List<GameObject> detachedParts = new List<GameObject>(); // Liste des parties détachées
-
+    public MannequinVie healthUI;
+    public GameObject healthBar;
     void Start()
     {
         rb = GetComponent<Rigidbody>();
@@ -57,6 +58,17 @@ public class Mannequin : MonoBehaviour
 
     void TakeHit(RaycastHit hit)
     {
+            currentHealth -= damagePerHit;
+
+            if (healthUI != null)
+            {
+                healthUI.healthBar.value = currentHealth;
+            }
+
+            if (currentHealth <= 0)
+            {
+                StartCoroutine(DestroyAndRespawn());
+            }
         // Jouer l'effet visuel à l'endroit de l'impact
         if (hitVFX != null)
         {
@@ -141,6 +153,15 @@ public class Mannequin : MonoBehaviour
 
     void DestroyMannequin()
     {
+            Debug.Log("Destruction du mannequin en cours...");
+
+            if (healthBar != null)
+            {
+                Destroy(healthBar);  // Détruire la barre de vie si elle existe
+            }
+
+            Destroy(gameObject);
+        
         // Détruire le mannequin et tous ses objets enfants (y compris les objets détachés)
         Debug.Log("Destruction du mannequin en cours...");
         Destroy(gameObject);
