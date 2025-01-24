@@ -2,11 +2,15 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Windows;
+using static UnityEditor.Searcher.SearcherWindow.Alignment;
+
 
 public class CharacterMovement : MonoBehaviour
 {
     public float speed = 5f;
     public float rotationSpeed = 10f;
+
+    public Animator animator;
 
     [SerializeField] private float dashSpeed = 15f;
     [SerializeField] private float dashTime = 0.2f;
@@ -61,19 +65,28 @@ public class CharacterMovement : MonoBehaviour
         float moveHorizontal = 0f;
         float moveVertical = 0f;
 
-        if (UnityEngine.Input.GetKey(KeyCode.W)) moveVertical += 1f;   // Avancer (Z)
-        if (UnityEngine.Input.GetKey(KeyCode.S)) moveVertical -= 1f;   // Reculer (S)
-        if (UnityEngine.Input.GetKey(KeyCode.A)) moveHorizontal -= 1f; // Gauche (Q)
-        if (UnityEngine.Input.GetKey(KeyCode.D)) moveHorizontal += 1f; // Droite (D)
+        if (UnityEngine.Input.GetKey(KeyCode.W)) moveVertical += 1f;   // Avancer
+        if (UnityEngine.Input.GetKey(KeyCode.S)) moveVertical -= 1f;   // Reculer
+        if (UnityEngine.Input.GetKey(KeyCode.A)) moveHorizontal -= 1f; // Gauche
+        if (UnityEngine.Input.GetKey(KeyCode.D)) moveHorizontal += 1f; // Droite
 
         Vector3 localDirection = new Vector3(moveHorizontal, 0, moveVertical).normalized;
 
         Transform cameraTransform = Camera.main.transform;
-
         Vector3 forward = Vector3.Scale(cameraTransform.forward, new Vector3(1, 0, 1)).normalized;
         Vector3 right = Vector3.Scale(cameraTransform.right, new Vector3(1, 0, 1)).normalized;
-
         moveDirection = localDirection.z * forward + localDirection.x * right;
+
+        if (moveDirection.magnitude > 0.1f)
+        {
+            animator.SetBool("isMoving", true);
+            animator.SetFloat("MoveX", localDirection.x);
+            animator.SetFloat("MoveZ", localDirection.z);
+        }
+        else
+        {
+            animator.SetBool("isMoving", false);
+        }
 
         if (moveDirection != Vector3.zero)
         {
@@ -86,8 +99,11 @@ public class CharacterMovement : MonoBehaviour
     {
         isAttacking = true;
         lastAttackTime = Time.time;
+
+        animator.SetTrigger("Attack");
+
         yield return new WaitForSeconds(attackDelay);
-        Debug.Log("Attack performed!");
+
         isAttacking = false;
     }
 
@@ -95,6 +111,8 @@ public class CharacterMovement : MonoBehaviour
     {
         isDashing = true;
         canDash = false;
+
+        animator.SetTrigger("Dash");
 
         Vector3 dashDirection = moveDirection;
 
@@ -105,10 +123,10 @@ public class CharacterMovement : MonoBehaviour
             yield return null;
         }
 
-        rb.velocity = Vector3.zero; // Stop dash
+        rb.velocity = Vector3.zero; // Arrêt du dash
         isDashing = false;
 
-        // Temps d'attente du cooldown
+        // Temps de recharge du dash
         yield return new WaitForSeconds(dashCooldown);
         canDash = true;
     }
