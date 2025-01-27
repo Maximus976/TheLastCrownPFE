@@ -26,7 +26,6 @@ public class PlayerMovement : MonoBehaviour
             animator.SetBool("isMoving", false);
         }
     }
-
     /*void FixedUpdate()
     {
         // Déplacement du joueur

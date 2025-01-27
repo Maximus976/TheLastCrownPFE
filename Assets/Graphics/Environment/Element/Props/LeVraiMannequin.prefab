@@ -856,6 +856,10 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 5233112405309087440, guid: e1aae624450dbad4989bba793e2280d9,
         type: 3}
       insertIndex: -1
+      addedObject: {fileID: 2388683483500858644}
+    - targetCorrespondingSourceObject: {fileID: 5233112405309087440, guid: e1aae624450dbad4989bba793e2280d9,
+        type: 3}
+      insertIndex: -1
       addedObject: {fileID: 4361912919401315901}
     - targetCorrespondingSourceObject: {fileID: 5233112405309087440, guid: e1aae624450dbad4989bba793e2280d9,
         type: 3}
@@ -1099,6 +1103,26 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.08996652, y: 0.10759229, z: 0.047616307}
   m_Center: {x: -0.00252432, y: -0.014300469, z: -0.0064737946}
+--- !u!114 &2388683483500858644
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5836619442512249227}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e4c419e2a0b81414d917a7d82a08c128, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hitVFX: {fileID: 3862778937305927597, guid: 11294f675f317c94d9853364a35ec1bb, type: 3}
+  destructionVFX: {fileID: 2536447958634885616, guid: cd589b2c14ab2bb4aa4279221a962224,
+    type: 3}
+  healthBar: {fileID: 564885911372666834}
+  maxHealth: 100
+  currentHealth: 0
+  mannequinPrefab: {fileID: 1486609702148809226}
+  respawnDelay: 3
 --- !u!114 &4361912919401315901
 MonoBehaviour:
   m_ObjectHideFlags: 0
