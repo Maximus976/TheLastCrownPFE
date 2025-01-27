@@ -13,9 +13,13 @@ public class EnnemiController : MonoBehaviour
     public float detectionRange = 10f;  // Distance à laquelle l'ennemi détecte le joueur
     public float attackRange = 2f;      // Distance à laquelle l'ennemi attaque le joueur
     public float attackCooldown = 1.5f; // Temps entre deux attaques
+
     private bool isWaiting = false;
     private bool isChasingPlayer = false;
+    private bool isStunned = false; // Indique si l'ennemi est "stun"
+
     private float lastAttackTime;
+    private Coroutine stunCoroutine; // Référence à la coroutine en cours pour réinitialiser le "stun"
 
     void Start()
     {
@@ -24,6 +28,9 @@ public class EnnemiController : MonoBehaviour
 
     void Update()
     {
+        // Si l'ennemi est stun, il ne peut pas bouger ni attaquer
+        if (isStunned) return;
+
         if (isWaiting) return;
 
         // Vérifie si le joueur est à portée de détection
@@ -109,5 +116,27 @@ public class EnnemiController : MonoBehaviour
         yield return new WaitForSeconds(stopDuration);
         isWaiting = false;
         increaseTargetInt();
+    }
+
+    public void Stun(float duration)
+    {
+        // Si l'ennemi est déjà stun, réinitialise le chrono
+        if (stunCoroutine != null)
+        {
+            StopCoroutine(stunCoroutine);
+        }
+
+        stunCoroutine = StartCoroutine(StunCoroutine(duration));
+    }
+
+    private IEnumerator StunCoroutine(float duration)
+    {
+        isStunned = true;
+        Debug.Log("Enemy is stunned!");
+
+        yield return new WaitForSeconds(duration);
+
+        isStunned = false;
+        Debug.Log("Enemy is no longer stunned.");
     }
 }
