@@ -12,17 +12,19 @@ public class Mannequin : MonoBehaviour
     public GameObject destructionVFX;  // Effet visuel de destruction (ex: fumée, explosion)
     public GameObject mannequinPrefab; // Préfab pour respawn du mannequin
     public float respawnDelay = 3f;     // Temps avant respawn
+    public AudioSource hitSound;        // Son d'impact lors d'un coup
 
     private Rigidbody rb;
     private FixedJoint[] joints;        // Tableau des FixedJoint attachés au mannequin
     private int hitCount = 0;           // Compteur de coups pour détachement
-    public int currentHealth;          // Points de vie actuels
-    public Vector3 initialPosition; // Ajouter cette variable pour stocker la position initiale du mannequin
+    public int currentHealth;           // Points de vie actuels
+    public Vector3 initialPosition;     // Position initiale du mannequin
     public Quaternion initialRotation;
 
     public List<GameObject> detachedParts = new List<GameObject>(); // Liste des parties détachées
     public MannequinVie healthUI;
     public GameObject healthBar;
+
     void Start()
     {
         rb = GetComponent<Rigidbody>();
@@ -58,24 +60,29 @@ public class Mannequin : MonoBehaviour
 
     void TakeHit(RaycastHit hit)
     {
-            currentHealth -= damagePerHit;
+        currentHealth -= damagePerHit;
 
-            if (healthUI != null)
-            {
-                healthUI.healthBar.value = currentHealth;
-            }
+        if (healthUI != null)
+        {
+            healthUI.healthBar.value = currentHealth;
+        }
 
-            if (currentHealth <= 0)
-            {
-                StartCoroutine(DestroyAndRespawn());
-            }
+        if (currentHealth <= 0)
+        {
+            StartCoroutine(DestroyAndRespawn());
+        }
+
         // Jouer l'effet visuel à l'endroit de l'impact
         if (hitVFX != null)
         {
             GameObject impactEffect = Instantiate(hitVFX, hit.point, Quaternion.identity);
+            Destroy(impactEffect, 2f);  // Détruire l'effet après un délai
+        }
 
-            // Détruire l'effet après un certain délai (par exemple 2 secondes)
-            Destroy(impactEffect, 2f);
+        // Jouer le son d'impact
+        if (hitSound != null)
+        {
+            hitSound.Play();
         }
 
         // Appliquer une force à l'endroit de l'impact
@@ -86,10 +93,6 @@ public class Mannequin : MonoBehaviour
         {
             rb.AddForceAtPosition(impactDirection * impactForce, hit.point, ForceMode.Impulse);
         }
-
-        // Réduire les points de vie
-        currentHealth -= damagePerHit;
-        Debug.Log("Mannequin HP: " + currentHealth);
 
         // Augmenter le compteur de coups
         hitCount++;
@@ -112,7 +115,7 @@ public class Mannequin : MonoBehaviour
     {
         foreach (FixedJoint joint in joints)
         {
-            if (joint == GetComponent<FixedJoint>()) // Ne pas détacher le body principal
+            if (joint == GetComponent<FixedJoint>()) // Ne pas détacher le corps principal
                 continue;
 
             if (joint != null)
@@ -137,33 +140,26 @@ public class Mannequin : MonoBehaviour
             Instantiate(destructionVFX, transform.position, Quaternion.identity);
         }
 
-        // Laisser un délai pour l'effet visuel de destruction
         yield return new WaitForSeconds(1f);
 
-        // Détruire tout le mannequin (lui-même et ses enfants)
         DestroyMannequin();
 
-        yield return new WaitForSeconds(respawnDelay); // Temps avant respawn
+        yield return new WaitForSeconds(respawnDelay);
 
         Debug.Log("Tentative de respawn...");
 
-        // Respawn du mannequin
         Respawn();
     }
 
     void DestroyMannequin()
     {
-            Debug.Log("Destruction du mannequin en cours...");
-
-            if (healthBar != null)
-            {
-                Destroy(healthBar);  // Détruire la barre de vie si elle existe
-            }
-
-            Destroy(gameObject);
-        
-        // Détruire le mannequin et tous ses objets enfants (y compris les objets détachés)
         Debug.Log("Destruction du mannequin en cours...");
+
+        if (healthBar != null)
+        {
+            Destroy(healthBar);  // Détruire la barre de vie si elle existe
+        }
+
         Destroy(gameObject);
     }
 
@@ -171,11 +167,10 @@ public class Mannequin : MonoBehaviour
     {
         Debug.Log("Respawn du mannequin...");
 
-        // Instancier un nouveau mannequin à la position initiale
         if (mannequinPrefab != null)
         {
             GameObject newMannequin = Instantiate(mannequinPrefab, initialPosition, initialRotation);
-            newMannequin.GetComponent<Mannequin>().ResetMannequin(); // Réinitialiser le mannequin
+            newMannequin.GetComponent<Mannequin>().ResetMannequin();
         }
         else
         {
@@ -190,8 +185,8 @@ public class Mannequin : MonoBehaviour
         currentHealth = maxHealth;
         hitCount = 0;
         joints = GetComponentsInChildren<FixedJoint>(); // Réactualiser les joints
-        rb.velocity = Vector3.zero; // Annuler toute vitesse résiduelle
-        rb.angularVelocity = Vector3.zero; // Annuler la vitesse angulaire
+        rb.velocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
         Debug.Log("Mannequin réinitialisé !");
     }
 }
