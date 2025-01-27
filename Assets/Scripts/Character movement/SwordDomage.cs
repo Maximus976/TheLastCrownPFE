@@ -4,18 +4,24 @@ using UnityEngine;
 
 public class SwordDamage : MonoBehaviour
 {
-    public int damageAmount = 40;
+    public int damage = 10;
 
-    private void OnTriggerEnter(Collider collision)
+    private void OnTriggerEnter(Collider other)
     {
-        if (collision.gameObject.CompareTag("Ennemi"))
+        Debug.Log($"Collision détectée avec : {other.name}");
+
+        var enemyHealth = other.GetComponent<EnemyHealth>();
+        if (enemyHealth != null)
         {
-            Debug.Log("Test Script Sword Domage _ Tag");
-            EnemyHealth enemyHealth = collision.gameObject.GetComponent<EnemyHealth>();
-            if (enemyHealth != null)
-            {
-                enemyHealth.TakeDamage(damageAmount);
-            }
+            Debug.Log($"Dégâts infligés à {other.name} via EnemyHealth.");
+            enemyHealth.TakeDamage(damage);
+        }
+
+        var mannequin = other.GetComponent<Mannequin2>();
+        if (mannequin != null)
+        {
+            Debug.Log($"Dégâts infligés à {other.name} via Mannequin2.");
+            mannequin.TakeDamage(damage);
         }
     }
 }
