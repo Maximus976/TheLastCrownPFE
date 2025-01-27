@@ -5,10 +5,10 @@ using UnityEngine;
 
 public class Fight : MonoBehaviour
 {
-    public Animation animationComponent; // Référence au Legacy Animation Component
-    public AnimationClip attackClip; // Clip d'animation d'attaque
-    public float cooldown = 1.0f; // Temps entre deux attaques
-    private float nextAttackTime = 0f; // Temps de la prochaine attaque autorisée
+    public Animation animationComponent;
+    public AnimationClip attackClip;
+    public float cooldown = 1.0f;
+    private float nextAttackTime = 0f;
 
     void Start()
     {
@@ -24,14 +24,12 @@ public class Fight : MonoBehaviour
 
         if (attackClip != null)
         {
-            // Ajouter le clip au composant Animation
             animationComponent.AddClip(attackClip, "Attack");
         }
     }
 
     void Update()
     {
-        // Si l'utilisateur clique et que le cooldown est respecté
         if (Input.GetMouseButtonDown(0) && Time.time >= nextAttackTime)
         {
             PlayAttackAnimation();
@@ -42,13 +40,9 @@ public class Fight : MonoBehaviour
     {
         if (attackClip != null && animationComponent != null)
         {
-            animationComponent.Play("Attack"); // Joue l'animation d'attaque
-            nextAttackTime = Time.time + cooldown; // Met à jour le temps pour la prochaine attaque
+            animationComponent.Play("Attack");
+            nextAttackTime = Time.time + cooldown;
             Debug.Log("Attack animation played.");
-        }
-        else
-        {
-            Debug.LogError("Attack animation clip or Animation Component is missing!");
         }
     }
 }

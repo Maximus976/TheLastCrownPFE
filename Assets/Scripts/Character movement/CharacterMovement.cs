@@ -16,22 +16,28 @@ public class CharacterMovement : MonoBehaviour
     [SerializeField] private float dashTime = 0.2f;
     [SerializeField] private float dashCooldown = 1f;
 
-    public float attackDelay = 0.5f;
-    public float attackCooldown = 1f;
+    public float attackDelay = 0.5f; // Temps avant de réinitialiser l'attaque
+    public float attackCooldown = 1f; // Temps entre les combos
+    public float maxComboDelay = 1.5f; // Délai maximum pour enchaîner un combo
 
     private Rigidbody rb;
     private Vector3 moveDirection;
 
     private bool isDashing = false;
-    private bool canDash = true;
-
     private bool isAttacking = false;
+
     private float lastAttackTime = 0f;
+    private int comboStep = 0; // Étape actuelle du combo
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         rb.freezeRotation = true;
+
+        if (animator == null)
+        {
+            Debug.LogError("Animator component is missing on this GameObject!");
+        }
     }
 
     void Update()
@@ -41,12 +47,12 @@ public class CharacterMovement : MonoBehaviour
             HandleMovement();
         }
 
-        if (UnityEngine.Input.GetMouseButtonDown(0) && !isDashing && !isAttacking && Time.time >= lastAttackTime + attackCooldown)
+        if (UnityEngine.Input.GetMouseButtonDown(0) && Time.time >= lastAttackTime + attackCooldown)
         {
             StartCoroutine(PerformAttack());
         }
 
-        if (UnityEngine.Input.GetKeyDown(KeyCode.X) && !isDashing && canDash)
+        if (UnityEngine.Input.GetKeyDown(KeyCode.X) && !isDashing)
         {
             StartCoroutine(PerformDash());
         }
@@ -62,13 +68,8 @@ public class CharacterMovement : MonoBehaviour
 
     private void HandleMovement()
     {
-        float moveHorizontal = 0f;
-        float moveVertical = 0f;
-
-        if (UnityEngine.Input.GetKey(KeyCode.W)) moveVertical += 1f;   // Avancer
-        if (UnityEngine.Input.GetKey(KeyCode.S)) moveVertical -= 1f;   // Reculer
-        if (UnityEngine.Input.GetKey(KeyCode.A)) moveHorizontal -= 1f; // Gauche
-        if (UnityEngine.Input.GetKey(KeyCode.D)) moveHorizontal += 1f; // Droite
+        float moveHorizontal = UnityEngine.Input.GetAxisRaw("Horizontal");
+        float moveVertical = UnityEngine.Input.GetAxisRaw("Vertical");
 
         Vector3 localDirection = new Vector3(moveHorizontal, 0, moveVertical).normalized;
 
@@ -80,8 +81,6 @@ public class CharacterMovement : MonoBehaviour
         if (moveDirection.magnitude > 0.1f)
         {
             animator.SetBool("isMoving", true);
-            animator.SetFloat("MoveX", localDirection.x);
-            animator.SetFloat("MoveZ", localDirection.z);
         }
         else
         {
@@ -100,17 +99,40 @@ public class CharacterMovement : MonoBehaviour
         isAttacking = true;
         lastAttackTime = Time.time;
 
-        animator.SetTrigger("Attack");
+        // Gestion des combos
+        if (comboStep == 0)
+        {
+            animator.SetTrigger("Hit 1");
+            comboStep = 1;
+        }
+        else if (comboStep == 1 && Time.time - lastAttackTime <= maxComboDelay)
+        {
+            animator.SetTrigger("Hit 2");
+            comboStep = 2;
+        }
+        else if (comboStep == 2 && Time.time - lastAttackTime <= maxComboDelay)
+        {
+            animator.SetTrigger("Hit 3");
+            comboStep = 0; // Reset du combo après Hit 3
+        }
+        else
+        {
+            comboStep = 0; // Réinitialise si le délai est dépassé
+            animator.SetTrigger("Hit 1");
+        }
 
         yield return new WaitForSeconds(attackDelay);
 
+        // Réinitialisation et déblocage
+        animator.ResetTrigger("Hit 1");
+        animator.ResetTrigger("Hit 2");
+        animator.ResetTrigger("Hit 3");
         isAttacking = false;
     }
 
     private IEnumerator PerformDash()
     {
         isDashing = true;
-        canDash = false;
 
         animator.SetTrigger("Dash");
 
@@ -123,11 +145,9 @@ public class CharacterMovement : MonoBehaviour
             yield return null;
         }
 
-        rb.velocity = Vector3.zero; // Arrêt du dash
+        rb.velocity = Vector3.zero;
         isDashing = false;
 
-        // Temps de recharge du dash
         yield return new WaitForSeconds(dashCooldown);
-        canDash = true;
     }
 }
