@@ -12,6 +12,7 @@ public class Fight : MonoBehaviour
 
     void Start()
     {
+
         if (animationComponent == null)
         {
             animationComponent = GetComponent<Animation>();
