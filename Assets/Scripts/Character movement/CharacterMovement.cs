@@ -16,9 +16,9 @@ public class CharacterMovement : MonoBehaviour
     [SerializeField] private float dashTime = 0.2f;
     [SerializeField] private float dashCooldown = 1f;
 
-    public float attackDelay = 0.5f; // Temps avant de réinitialiser l'attaque
-    public float attackCooldown = 1f; // Temps entre les combos
-    public float maxComboDelay = 1.5f; // Délai maximum pour enchaîner un combo
+    public float attackDelay = 0.5f;
+    public float attackCooldown = 1f;
+    public float maxComboDelay = 1.5f;
 
     private Rigidbody rb;
     private Vector3 moveDirection;
@@ -27,7 +27,11 @@ public class CharacterMovement : MonoBehaviour
     private bool isAttacking = false;
 
     private float lastAttackTime = 0f;
-    private int comboStep = 0; // Étape actuelle du combo
+    private int comboStep = 0;
+
+    [Header("Slash VFX")]
+    public GameObject slashVFXPrefab;  // Le prefab de l'effet de "slash"
+    public Transform attackPoint;      // Le point d'attaque (souvent un objet enfant de l'épée)
 
     void Start()
     {
@@ -68,8 +72,13 @@ public class CharacterMovement : MonoBehaviour
 
     private void HandleMovement()
     {
-        float moveHorizontal = UnityEngine.Input.GetAxisRaw("Horizontal");
-        float moveVertical = UnityEngine.Input.GetAxisRaw("Vertical");
+        float moveHorizontal = 0f;
+        float moveVertical = 0f;
+
+        if (UnityEngine.Input.GetKey(KeyCode.W)) moveVertical += 1f;   // Haut
+        if (UnityEngine.Input.GetKey(KeyCode.S)) moveVertical -= 1f;   // Bas
+        if (UnityEngine.Input.GetKey(KeyCode.A)) moveHorizontal -= 1f; // Gauche
+        if (UnityEngine.Input.GetKey(KeyCode.D)) moveHorizontal += 1f; // Droite
 
         Vector3 localDirection = new Vector3(moveHorizontal, 0, moveVertical).normalized;
 
@@ -99,7 +108,7 @@ public class CharacterMovement : MonoBehaviour
         isAttacking = true;
         lastAttackTime = Time.time;
 
-        // Gestion des combos
+        // Combos
         if (comboStep == 0)
         {
             animator.SetTrigger("Hit 1");
@@ -113,23 +122,35 @@ public class CharacterMovement : MonoBehaviour
         else if (comboStep == 2 && Time.time - lastAttackTime <= maxComboDelay)
         {
             animator.SetTrigger("Hit 3");
-            comboStep = 0; // Reset du combo après Hit 3
+            comboStep = 0;
         }
         else
         {
-            comboStep = 0; // Réinitialise si le délai est dépassé
+            comboStep = 0;
             animator.SetTrigger("Hit 1");
         }
 
+        
+        yield return new WaitForSeconds(attackDelay + 0.0005f);
+
+        // Instancier le VFX au moment précis de l'attaque, avec position et rotation
+        if (slashVFXPrefab != null && attackPoint != null)
+        {
+            // Instancier le VFX à la position et rotation de l'attaque (suivant l'épée)
+            GameObject slashEffect = Instantiate(slashVFXPrefab, attackPoint.position, attackPoint.rotation);
+
+            // Optionnel: détruire l'effet après 1 seconde
+            Destroy(slashEffect, 0.5f);
+        }
+
+        // Attendre la fin de l'animation d'attaque
         yield return new WaitForSeconds(attackDelay);
 
-        // Réinitialisation et déblocage
         animator.ResetTrigger("Hit 1");
         animator.ResetTrigger("Hit 2");
         animator.ResetTrigger("Hit 3");
         isAttacking = false;
     }
-
     private IEnumerator PerformDash()
     {
         isDashing = true;
