@@ -26,4 +26,15 @@ public class MannequinVie : MonoBehaviour
             healthBar.transform.LookAt(Camera.main.transform); // Faire face à la caméra
         }
     }
+    public void SetHealth(int currentHealth, int maxHealth)
+    {
+        if (healthBar != null)
+        {
+            healthBar.value = (float)currentHealth / maxHealth;
+        }
+        else
+        {
+            Debug.LogWarning("Le slider de la barre de vie n'est pas assigné !");
+        }
+    }
 }

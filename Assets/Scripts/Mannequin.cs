@@ -5,13 +5,11 @@ using UnityEngine;
 public class Mannequin : MonoBehaviour
 {
     public GameObject hitVFX;          // Effet visuel d'impact
-    public float impactForce = 5f;      // Force de l'impact
+    public float impactForce = 0f;      // Force de l'impact (désactivée)
     public int hitsToDetach = 5;        // Nombre de coups nécessaires pour détacher une partie
     public int maxHealth = 100;         // Points de vie du mannequin
     public int damagePerHit = 10;       // Dégâts infligés par coup
     public GameObject destructionVFX;  // Effet visuel de destruction (ex: fumée, explosion)
-    public GameObject mannequinPrefab; // Préfab pour respawn du mannequin
-    public float respawnDelay = 3f;     // Temps avant respawn
     public AudioSource hitSound;        // Son d'impact lors d'un coup
 
     private Rigidbody rb;
@@ -47,18 +45,7 @@ public class Mannequin : MonoBehaviour
         }
     }
 
-    void OnMouseDown()
-    {
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        RaycastHit hit;
-
-        if (Physics.Raycast(ray, out hit) && hit.collider.gameObject == gameObject)
-        {
-            TakeHit(hit);
-        }
-    }
-
-    void TakeHit(RaycastHit hit)
+    public void TakeHit(Vector3 hitPoint)
     {
         currentHealth -= damagePerHit;
 
@@ -69,13 +56,13 @@ public class Mannequin : MonoBehaviour
 
         if (currentHealth <= 0)
         {
-            StartCoroutine(DestroyAndRespawn());
+            DestroyMannequin();
         }
 
         // Jouer l'effet visuel à l'endroit de l'impact
         if (hitVFX != null)
         {
-            GameObject impactEffect = Instantiate(hitVFX, hit.point, Quaternion.identity);
+            GameObject impactEffect = Instantiate(hitVFX, hitPoint, Quaternion.identity);
             Destroy(impactEffect, 2f);  // Détruire l'effet après un délai
         }
 
@@ -83,15 +70,6 @@ public class Mannequin : MonoBehaviour
         if (hitSound != null)
         {
             hitSound.Play();
-        }
-
-        // Appliquer une force à l'endroit de l'impact
-        Vector3 impactDirection = hit.point - transform.position;
-        impactDirection = impactDirection.normalized;
-
-        if (rb != null)
-        {
-            rb.AddForceAtPosition(impactDirection * impactForce, hit.point, ForceMode.Impulse);
         }
 
         // Augmenter le compteur de coups
@@ -102,12 +80,6 @@ public class Mannequin : MonoBehaviour
         {
             DetachPart();
             hitCount = 0; // Réinitialiser le compteur de détachement
-        }
-
-        // Détruire le mannequin si sa vie tombe à zéro
-        if (currentHealth <= 0)
-        {
-            StartCoroutine(DestroyAndRespawn());
         }
     }
 
@@ -130,7 +102,7 @@ public class Mannequin : MonoBehaviour
         Debug.Log("Toutes les parties du mannequin sont déjà détachées !");
     }
 
-    IEnumerator DestroyAndRespawn()
+    void DestroyMannequin()
     {
         Debug.Log("Destruction du mannequin...");
 
@@ -140,21 +112,6 @@ public class Mannequin : MonoBehaviour
             Instantiate(destructionVFX, transform.position, Quaternion.identity);
         }
 
-        yield return new WaitForSeconds(1f);
-
-        DestroyMannequin();
-
-        yield return new WaitForSeconds(respawnDelay);
-
-        Debug.Log("Tentative de respawn...");
-
-        Respawn();
-    }
-
-    void DestroyMannequin()
-    {
-        Debug.Log("Destruction du mannequin en cours...");
-
         if (healthBar != null)
         {
             Destroy(healthBar);  // Détruire la barre de vie si elle existe
@@ -162,31 +119,5 @@ public class Mannequin : MonoBehaviour
 
         Destroy(gameObject);
     }
-
-    void Respawn()
-    {
-        Debug.Log("Respawn du mannequin...");
-
-        if (mannequinPrefab != null)
-        {
-            GameObject newMannequin = Instantiate(mannequinPrefab, initialPosition, initialRotation);
-            newMannequin.GetComponent<Mannequin>().ResetMannequin();
-        }
-        else
-        {
-            Debug.LogError("Prefab du mannequin non défini !");
-        }
-    }
-
-    void ResetMannequin()
-    {
-        Debug.Log("Réinitialisation du mannequin...");
-
-        currentHealth = maxHealth;
-        hitCount = 0;
-        joints = GetComponentsInChildren<FixedJoint>(); // Réactualiser les joints
-        rb.velocity = Vector3.zero;
-        rb.angularVelocity = Vector3.zero;
-        Debug.Log("Mannequin réinitialisé !");
-    }
 }
+ 

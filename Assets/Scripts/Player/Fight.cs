@@ -25,9 +25,8 @@ public class Fight : MonoBehaviour
     {
         lastClickedTime = Time.time;
         noOfClicks++;
-        if(noOfClicks == 1)
-        {
-
-        }
-    }
+        if (noOfClicks == 1) ;
+     }
 }
+
+
