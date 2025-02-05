@@ -20,6 +20,9 @@ public class CharacterMovement : MonoBehaviour
     public float attackCooldown = 1f;
     public float maxComboDelay = 1.5f;
 
+    [SerializeField] private float attackDashSpeed = 8f; // Vitesse du dash d'attaque
+    [SerializeField] private float attackDashTime = 0.1f; // Durée du dash d'attaque
+
     private Rigidbody rb;
     private Vector3 moveDirection;
 
@@ -60,10 +63,13 @@ public class CharacterMovement : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (!isDashing && !isAttacking)
+        if (isAttacking || isDashing)
         {
-            rb.velocity = moveDirection * speed;
+            rb.velocity = Vector3.zero; // Bloquer complètement les mouvements pendant l'attaque ou le dash
+            return;
         }
+
+        rb.velocity = new Vector3(moveDirection.x * speed, rb.velocity.y, moveDirection.z * speed);
     }
 
     private void HandleMovement()
@@ -94,7 +100,7 @@ public class CharacterMovement : MonoBehaviour
 
         if (moveDirection != Vector3.zero)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
+            Quaternion targetRotation = Quaternion.LookRotation(new Vector3(moveDirection.x, 0, moveDirection.z));
             transform.rotation = Quaternion.Lerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
         }
     }
@@ -126,7 +132,19 @@ public class CharacterMovement : MonoBehaviour
             animator.SetTrigger("Hit 1");
         }
 
-        yield return new WaitForSeconds(attackDelay);
+        // Mini-dash vers l'avant lors de l'attaque
+        Vector3 attackDirection = transform.forward; // Direction de l'attaque
+        float dashStartTime = Time.time;
+
+        while (Time.time < dashStartTime + attackDashTime)
+        {
+            rb.velocity = attackDirection * attackDashSpeed;
+            yield return null;
+        }
+
+        rb.velocity = Vector3.zero; // Arrêter le dash
+
+        yield return new WaitForSeconds(attackDelay); // Attendre avant de réactiver les mouvements
 
         animator.ResetTrigger("Hit 1");
         animator.ResetTrigger("Hit 2");
