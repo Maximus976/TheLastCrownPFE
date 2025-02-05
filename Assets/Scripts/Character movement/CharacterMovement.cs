@@ -20,6 +20,9 @@ public class CharacterMovement : MonoBehaviour
     public float attackCooldown = 1f;
     public float maxComboDelay = 1.5f;
 
+    [SerializeField] private float attackDashSpeed = 8f; // Vitesse du dash d'attaque
+    [SerializeField] private float attackDashTime = 0.1f; // Durée du dash d'attaque
+
     private Rigidbody rb;
     private Vector3 moveDirection;
 
@@ -28,10 +31,6 @@ public class CharacterMovement : MonoBehaviour
 
     private float lastAttackTime = 0f;
     private int comboStep = 0;
-
-    [Header("Slash VFX")]
-    public GameObject slashVFXPrefab;  // Le prefab de l'effet de "slash"
-    public Transform attackPoint;      // Le point d'attaque (souvent un objet enfant de l'épée)
 
     void Start()
     {
@@ -64,10 +63,13 @@ public class CharacterMovement : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (!isDashing && !isAttacking)
+        if (isAttacking || isDashing)
         {
-            rb.velocity = moveDirection * speed;
+            rb.velocity = Vector3.zero; // Bloquer complètement les mouvements pendant l'attaque ou le dash
+            return;
         }
+
+        rb.velocity = new Vector3(moveDirection.x * speed, rb.velocity.y, moveDirection.z * speed);
     }
 
     private void HandleMovement()
@@ -98,7 +100,7 @@ public class CharacterMovement : MonoBehaviour
 
         if (moveDirection != Vector3.zero)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
+            Quaternion targetRotation = Quaternion.LookRotation(new Vector3(moveDirection.x, 0, moveDirection.z));
             transform.rotation = Quaternion.Lerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
         }
     }
@@ -130,27 +132,26 @@ public class CharacterMovement : MonoBehaviour
             animator.SetTrigger("Hit 1");
         }
 
-        
-        yield return new WaitForSeconds(attackDelay + 0.0005f);
+        // Mini-dash vers l'avant lors de l'attaque
+        Vector3 attackDirection = transform.forward; // Direction de l'attaque
+        float dashStartTime = Time.time;
 
-        // Instancier le VFX au moment précis de l'attaque, avec position et rotation
-        if (slashVFXPrefab != null && attackPoint != null)
+        while (Time.time < dashStartTime + attackDashTime)
         {
-            // Instancier le VFX à la position et rotation de l'attaque (suivant l'épée)
-            GameObject slashEffect = Instantiate(slashVFXPrefab, attackPoint.position, attackPoint.rotation);
-
-            // Optionnel: détruire l'effet après 1 seconde
-            Destroy(slashEffect, 0.5f);
+            rb.velocity = attackDirection * attackDashSpeed;
+            yield return null;
         }
 
-        // Attendre la fin de l'animation d'attaque
-        yield return new WaitForSeconds(attackDelay);
+        rb.velocity = Vector3.zero; // Arrêter le dash
+
+        yield return new WaitForSeconds(attackDelay); // Attendre avant de réactiver les mouvements
 
         animator.ResetTrigger("Hit 1");
         animator.ResetTrigger("Hit 2");
         animator.ResetTrigger("Hit 3");
         isAttacking = false;
     }
+
     private IEnumerator PerformDash()
     {
         isDashing = true;
