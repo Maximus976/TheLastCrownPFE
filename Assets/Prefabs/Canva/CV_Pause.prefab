@@ -92,7 +92,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1628353331701025261
 RectTransform:
   m_ObjectHideFlags: 0
@@ -976,16 +976,25 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   pauseMenuUI: {fileID: 5923834142688126825}
+  optionsPanel: {fileID: 509379759416709370}
   resumeButton: {fileID: 8706767290313417533}
   settingsButton: {fileID: 4459737691866142705}
   mainMenuButton: {fileID: 9053671832464843245}
   quitButton: {fileID: 5132373378209234749}
-  optionsPanel: {fileID: 509379759416709370}
   volumeSlider: {fileID: 8739643405051342926}
   volumeText: {fileID: 7766044494245302118}
   backButton: {fileID: 5727599309199597860}
+  fadeImage: {fileID: 0}
+  fadeDuration: 1
   audioSource: {fileID: 777089095598570315, guid: 2ba72ddc918deb346a9a1b6c48fc7989,
     type: 3}
+  mainCamera: {fileID: 0}
+  pauseCameraPosition: {x: 0, y: 10, z: -10}
+  pauseCameraRotation: {x: 45, y: 0, z: 0}
+  buttons: []
+  normalColor: {r: 1, g: 1, b: 1, a: 1}
+  hoverColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  transitionSpeed: 5
 --- !u!1 &4019691853268179084
 GameObject:
   m_ObjectHideFlags: 0
@@ -1019,7 +1028,7 @@ RectTransform:
   m_Father: {fileID: 2808763796942964379}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 10, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -1130,7 +1139,7 @@ RectTransform:
   m_Father: {fileID: 445588429650011985}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0.0000019073486}
   m_SizeDelta: {x: 52.391, y: 32.391}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -1568,7 +1577,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &5275536729505896994
 RectTransform:
   m_ObjectHideFlags: 0
