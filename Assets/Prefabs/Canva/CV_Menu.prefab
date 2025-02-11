@@ -743,11 +743,16 @@ MonoBehaviour:
   optionsPanel: {fileID: 3196439235827847157}
   volumeSlider: {fileID: 2242017160646332466}
   volumeText: {fileID: 2912586568139894558}
+  brightnessSlider: {fileID: 0}
+  brightnessText: {fileID: 0}
   playButton: {fileID: 7842469413613636963}
   optionsButton: {fileID: 7946855056237302810}
   quitButton: {fileID: 7188616961959802200}
   backButton: {fileID: 2814704663157615596}
+  fadeImage: {fileID: 0}
+  fadeDuration: 1
   audioSource: {fileID: 0}
+  mainLight: {fileID: 0}
 --- !u!1 &4237442579160357948
 GameObject:
   m_ObjectHideFlags: 0
@@ -1556,7 +1561,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   targetText: {fileID: 6594412107714646955}
-  fadeDuration: 5
+  targetImage: {fileID: 0}
+  textFadeDuration: 2
+  imageFadeDelay: 1
+  imageFadeDuration: 2
 --- !u!1 &6163133936551684788
 GameObject:
   m_ObjectHideFlags: 0
