@@ -18,13 +18,15 @@ public class MenuScript : MonoBehaviour
     public Button quitButton;         // Le bouton pour quitter le jeu
     public Button backButton;         // Le bouton pour revenir au menu principal
     public Image fadeImage;
-    public float fadeDuration = 1.0f; // Durée du fondu
+    public float fadeDuration = 1.0f; // Durée du fondu pour l'image
 
     [Header("Audio Settings")]
-    public AudioSource audioSource;   // L'AudioSource à contrôler (assurez-vous qu'il est assigné dans l'inspecteur)
+    public AudioSource audioSource;   // L'AudioSource à contrôler (assigné dans l'inspecteur)
+    [Tooltip("Durée du fade out de la musique (en secondes)")]
+    public float musicFadeDuration = 3.0f; // Durée du fade pour la musique (prolonge le fade)
 
     [Header("Lighting Settings")]
-    public Light mainLight;           // La lumière principale à contrôler (assurez-vous qu'elle est assignée dans l'inspecteur)
+    public Light mainLight;           // La lumière principale (assignée dans l'inspecteur)
 
     private void Start()
     {
@@ -52,7 +54,7 @@ public class MenuScript : MonoBehaviour
 
         if (fadeImage != null)
         {
-            // Assurez-vous que l'image est entièrement transparente au démarrage
+            // L'image doit être entièrement transparente au démarrage
             fadeImage.color = new Color(0, 0, 0, 0);
         }
     }
@@ -69,16 +71,16 @@ public class MenuScript : MonoBehaviour
         if (audioSource != null)
         {
             float startVolume = audioSource.volume;
-            for (float t = 0; t < fadeDuration; t += Time.deltaTime)
+            for (float t = 0; t < musicFadeDuration; t += Time.deltaTime)
             {
-                float ratio = t / fadeDuration;
+                float ratio = t / musicFadeDuration;
                 audioSource.volume = Mathf.Lerp(startVolume, 0, ratio);
                 yield return null;
             }
             audioSource.volume = 0;
         }
 
-        // Ensuite, fade out de l'écran (augmentation de l'alpha à 1)
+        // Ensuite, fade out de l'écran (augmentation progressive de l'alpha à 1)
         if (fadeImage != null)
         {
             for (float t = 0; t < fadeDuration; t += Time.deltaTime)
@@ -121,7 +123,6 @@ public class MenuScript : MonoBehaviour
     {
         // Met à jour le texte du volume en fonction du slider
         volumeText.text = "Volume: " + Mathf.RoundToInt(value * 100).ToString() + "%";
-
         // Met à jour le volume de l'AudioSource
         audioSource.volume = value;
     }
@@ -132,7 +133,6 @@ public class MenuScript : MonoBehaviour
         {
             // Met à jour l'intensité de la lumière principale
             mainLight.intensity = value;
-
             // Met à jour le texte de la luminosité en fonction du slider
             brightnessText.text = "Luminosité: " + Mathf.RoundToInt(value * 100).ToString() + "%";
         }

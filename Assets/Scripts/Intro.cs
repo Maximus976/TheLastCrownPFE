@@ -50,14 +50,30 @@ public class Intro : MonoBehaviour
     void Awake()
     {
         // Initialisation automatique des paires de textes
-        textPairs = new List<TextPair>()
-        {
-            new TextPair { line1 = "Dans un monde oublié par le temps,", line2 = "les ténèbres murmurent d'anciens secrets." },
-            new TextPair { line1 = "Au cœur de l'ombre naît une lueur fragile,", line2 = "promesse d'espoir dans l'obscurité." },
-            new TextPair { line1 = "Un héros, guidé par la lumière intérieure,", line2 = "se dresse contre les forces oubliées." },
-            new TextPair { line1 = "Son périple l'entraîne vers des terres mystiques,", line2 = "où chaque pas réveille des légendes endormies." },
-            new TextPair { line1 = "Au fil du temps, la lumière triomphe,", line2 = "et un nouveau jour se lève sur le royaume." }
-        };
+        textPairs = new List<TextPair>();
+       textPairs = new List<TextPair>()
+{
+    new TextPair {
+        line1 = "Au cœur de Camelot, le destin d'un roi se dessine,",
+        line2 = "les murmures du passé annoncent la renaissance d'une ère glorieuse."
+    },
+    new TextPair {
+        line1 = "L'épée Excalibur, gardienne d'un pouvoir sacré,",
+        line2 = "attend d'être brandie par celui qui sauvera le royaume."
+    },
+    new TextPair {
+        line1 = "Dans les brumes mystiques, Merlin dévoile des prophéties oubliées,",
+        line2 = "guidant les âmes vaillantes vers la lumière."
+    },
+    new TextPair {
+        line1 = "Les chevaliers de la Table Ronde jurent fidélité à la justice,",
+        line2 = "leur courage illuminant l'obscurité des temps troublés."
+    },
+    new TextPair {
+        line1 = "Face aux puissances obscures qui menacent la sérénité de Camelot,",
+        line2 = "l'esprit d'Arthur s'élève pour restaurer l'honneur et la vérité."
+    }
+};
     }
 
     void Start()
