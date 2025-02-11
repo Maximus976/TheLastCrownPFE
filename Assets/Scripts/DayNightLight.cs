@@ -26,8 +26,11 @@ public class DayNightLight : MonoBehaviour
     private float[] maxIntensities;
 
     private AudioSource[] insectAudioSources;
-    private AudioSource[] dayAudioSources;    
-
+    private AudioSource[] dayAudioSources;
+    public Color dayFogColor = Color.gray;
+    public Color nightFogColor = new Color(0.05f, 0.05f, 0.2f);
+    public float fogTransitionSpeed = 1f;
+   
     void Start()
     {
         if (sun == null)
@@ -92,9 +95,15 @@ public class DayNightLight : MonoBehaviour
         }
     }
 
-    IEnumerator ActivateNightElements(float targetFactor)
+   IEnumerator ActivateNightElements(float targetFactor)
     {
-       
+        // Transition du fog en premier
+        StartCoroutine(ChangeFogColor(targetFactor > 0.5f ? nightFogColor : dayFogColor));
+
+        // Attendre un peu pour donner l'effet que le fog s'installe avant les autres changements
+        yield return new WaitForSeconds(1f);
+
+        // Transition des lumières de nuit
         for (int i = 0; i < nightLights.Length; i++)
         {
             StartCoroutine(SmoothLightIntensity(nightLights[i], maxIntensities[i] * targetFactor));
@@ -108,7 +117,7 @@ public class DayNightLight : MonoBehaviour
             yield return new WaitForSeconds(fireflyDelay);
         }
 
-       
+        // Gestion des sons
         if (targetFactor > 0.5f)
         {
             StartCoroutine(FadeInSounds(insectAudioSources));
@@ -181,5 +190,19 @@ public class DayNightLight : MonoBehaviour
             float randomInterval = Random.Range(soundIntervalMin, soundIntervalMax);
             yield return new WaitForSeconds(randomInterval);
         }
+    }
+    IEnumerator ChangeFogColor(Color targetColor)
+    {
+        Color startColor = RenderSettings.fogColor;
+        float t = 0;
+
+        while (t < 1)
+        {
+            t += Time.deltaTime * fogTransitionSpeed;
+            RenderSettings.fogColor = Color.Lerp(startColor, targetColor, t);
+            yield return null;
+        }
+
+        RenderSettings.fogColor = targetColor;
     }
 }

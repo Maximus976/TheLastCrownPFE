@@ -65,24 +65,34 @@ public class MenuScript : MonoBehaviour
 
     private IEnumerator FadeOutAndLoadScene()
     {
+        // D'abord, fade out progressif de la musique
+        if (audioSource != null)
+        {
+            float startVolume = audioSource.volume;
+            for (float t = 0; t < fadeDuration; t += Time.deltaTime)
+            {
+                float ratio = t / fadeDuration;
+                audioSource.volume = Mathf.Lerp(startVolume, 0, ratio);
+                yield return null;
+            }
+            audioSource.volume = 0;
+        }
+
+        // Ensuite, fade out de l'écran (augmentation de l'alpha à 1)
         if (fadeImage != null)
         {
-            // Fade out (augmentation de l'alpha à 1)
             for (float t = 0; t < fadeDuration; t += Time.deltaTime)
             {
                 float alpha = t / fadeDuration;
                 fadeImage.color = new Color(0, 0, 0, alpha);
                 yield return null;
             }
-
-            // Assurez-vous que l'écran est complètement noir
             fadeImage.color = new Color(0, 0, 0, 1);
         }
 
         // Charger la scène suivante
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
 
-        // Attendez la fin de la charge de la scène avant de lancer le fade-in
         yield return null;
     }
 
@@ -128,4 +138,3 @@ public class MenuScript : MonoBehaviour
         }
     }
 }
-
