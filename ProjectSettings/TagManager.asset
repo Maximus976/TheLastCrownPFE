@@ -6,16 +6,17 @@ TagManager:
   tags:
   - Sword
   - Ennemi
+  - Wall
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Player
   - Water
   - UI
   - Ground
   - obstacle
-  - 
+  - Wall
   - 
   - 
   - 

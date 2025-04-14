@@ -1,29 +1,9 @@
 fileFormatVersion: 2
-guid: 393ed1538d6e49c44b7ad9d6270e3779
+guid: 5ac67430e4936ba4099dec74058b0e01
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
-  externalObjects:
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: MurTour
-    second: {fileID: 2100000, guid: 13657949b6a3816448f122d9fbecab94, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: Pierre
-    second: {fileID: 2100000, guid: 8727541293c02c24bbbc52971dcd62cf, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: Pierre.002
-    second: {fileID: 2100000, guid: 924c3bc070c98c8408bafa08022eefe5, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: bois.001
-    second: {fileID: 2100000, guid: f8a4166153e8a6d40b01d5a8e48a7eef, type: 2}
+  externalObjects: {}
   materials:
     materialImportMode: 2
     materialName: 0
