@@ -9,18 +9,14 @@ public class CustomCombat : MonoBehaviour
     public MonoBehaviour movementScript; // CustomMovement
     public MonoBehaviour followScript;   // PlayerFollowMouss
 
-    [Header("Attack")]
+    [Header("Attack Settings")]
     public float attackCooldown = 1f;
     public float attackDelay = 0.5f;
     public float maxComboDelay = 1.5f;
-    [SerializeField] private float attackDashSpeed = 8f;
-    [SerializeField] private float attackDashTime = 0.1f;
-
-    [Header("Charged Attack")]
-    [SerializeField] private float chargeThreshold = 0.7f;
-
-    [Header("Settings")]
-    [SerializeField] private float movementDisableDuration = 1f;
+    public float chargeThreshold = 0.7f;
+    public float movementDisableDuration = 0.5f;
+    public float attackDashSpeed = 8f;
+    public float attackDashTime = 0.1f;
 
     private float chargeStartTime;
     private bool isCharging = false;
@@ -39,40 +35,76 @@ public class CustomCombat : MonoBehaviour
     void Update()
     {
         HandleChargeLogic();
+        if (Input.GetMouseButtonDown(0))
+        {
+            Debug.Log("▶️ StartPrepare envoyé");
+            animator.SetTrigger("StartPrepare");
+        }
+
     }
 
     private void HandleChargeLogic()
     {
-        if (Input.GetMouseButtonDown(0) && !isAttacking && !isCharging)
+        if (Input.GetMouseButtonDown(0) && !isCharging && !isAttacking)
         {
             isCharging = true;
             chargeStartTime = Time.time;
-            animator.SetBool("IsCharging", true);
-            rb.velocity = Vector3.zero;
+            animator.SetTrigger("StartPrepare");
 
             if (movementScript) movementScript.enabled = false;
             if (followScript) followScript.enabled = true;
         }
 
+        if (isCharging && Time.time - chargeStartTime >= chargeThreshold)
+        {
+            animator.SetBool("IsChargingHeavy", true);
+        }
+
         if (Input.GetMouseButtonUp(0) && isCharging)
         {
             isCharging = false;
-            animator.SetBool("IsCharging", false);
-
             float heldTime = Time.time - chargeStartTime;
+            animator.SetBool("IsChargingHeavy", false);
 
             if (heldTime >= chargeThreshold)
-                StartCoroutine(PerformChargedAttack());
-            else if (Time.time >= lastAttackTime + attackCooldown && !isAttacking)
-                StartCoroutine(PerformAttack());
-            else
-                StartCoroutine(ReenableMovementDelayed());
+            {
+                animator.SetTrigger("HeavyAttack");
+                StartCoroutine(ExecuteAttack());
+            }
+            else if (Time.time >= lastAttackTime + attackCooldown)
+            {
+                animator.SetTrigger("LightAttack");
+                StartCoroutine(PerformCombo());
+            }
         }
     }
 
-    private IEnumerator PerformAttack()
+    private IEnumerator ExecuteAttack()
     {
         isAttacking = true;
+
+        Vector3 direction = transform.forward;
+        float dashEndTime = Time.time + attackDashTime;
+
+        while (Time.time < dashEndTime)
+        {
+            rb.MovePosition(rb.position + direction * attackDashSpeed * Time.fixedDeltaTime);
+            yield return new WaitForFixedUpdate();
+        }
+
+        yield return new WaitForSeconds(attackDelay);
+        yield return new WaitForSeconds(movementDisableDuration);
+
+        if (movementScript) movementScript.enabled = true;
+        if (followScript) followScript.enabled = false;
+
+        isAttacking = false;
+    }
+
+    private IEnumerator PerformCombo()
+    {
+        isAttacking = true;
+        lastAttackTime = Time.time;
 
         if (comboStep == 0)
         {
@@ -95,46 +127,13 @@ public class CustomCombat : MonoBehaviour
             animator.SetTrigger("Hit 1");
         }
 
-        lastAttackTime = Time.time;
-
-        Vector3 attackDirection = transform.forward;
-        float dashEndTime = Time.time + attackDashTime;
-
-        while (Time.time < dashEndTime)
-        {
-            rb.MovePosition(rb.position + attackDirection * attackDashSpeed * Time.fixedDeltaTime);
-            yield return new WaitForFixedUpdate();
-        }
-
         yield return new WaitForSeconds(attackDelay);
-        StartCoroutine(ReenableMovementDelayed());
-        isAttacking = false;
-    }
-
-    private IEnumerator PerformChargedAttack()
-    {
-        isAttacking = true;
-        animator.SetTrigger("ChargeAttack");
-
-        Vector3 attackDirection = transform.forward;
-        float dashEndTime = Time.time + attackDashTime;
-
-        while (Time.time < dashEndTime)
-        {
-            rb.MovePosition(rb.position + attackDirection * attackDashSpeed * Time.fixedDeltaTime);
-            yield return new WaitForFixedUpdate();
-        }
-
-        yield return new WaitForSeconds(attackDelay);
-        StartCoroutine(ReenableMovementDelayed());
-        isAttacking = false;
-    }
-
-    private IEnumerator ReenableMovementDelayed()
-    {
         yield return new WaitForSeconds(movementDisableDuration);
+
         if (movementScript) movementScript.enabled = true;
         if (followScript) followScript.enabled = false;
+
+        isAttacking = false;
     }
 }
 
