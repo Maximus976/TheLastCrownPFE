@@ -4,136 +4,142 @@ using UnityEngine;
 
 public class CustomCombat : MonoBehaviour
 {
-    [Header("References")]
+    [Header("Combat Settings")]
     public Animator animator;
-    public MonoBehaviour movementScript; // CustomMovement
-    public MonoBehaviour followScript;   // PlayerFollowMouss
+    public Rigidbody rb;
+    [SerializeField] private float attackDashSpeed = 4f;
+    [SerializeField] private float attackDashTime = 0.1f;
+    [SerializeField] private float comboResetTime = 1.5f;
+    [SerializeField] private float comboLockTime = 0.5f;
+    [SerializeField] private float comboEndDelay = 2f;
+    [SerializeField] private LayerMask groundMask;
 
     [Header("Attack Settings")]
-    public float attackCooldown = 1f;
-    public float attackDelay = 0.5f;
-    public float maxComboDelay = 1.5f;
-    public float chargeThreshold = 0.7f;
-    public float movementDisableDuration = 0.5f;
-    public float attackDashSpeed = 8f;
-    public float attackDashTime = 0.1f;
+    [SerializeField] private int damageAmount = 10;
+    [SerializeField] private float hitRange = 1.5f;
+    [SerializeField] private LayerMask enemyLayer;
 
-    private float chargeStartTime;
-    private bool isCharging = false;
-    private bool isAttacking = false;
-    private float lastAttackTime = 0f;
     private int comboStep = 0;
+    private float lastAttackTime = 0f;
+    private bool isAttacking = false;
+    private Coroutine currentAttackCoroutine;
+    private Camera mainCamera;
 
-    private Rigidbody rb;
+    private static readonly int IsInCombat = Animator.StringToHash("IsInCombat");
+
+    public bool IsAttacking => isAttacking;
 
     void Start()
     {
-        rb = GetComponent<Rigidbody>();
-        if (!animator) Debug.LogError("Animator is missing!");
+        if (animator == null) Debug.LogError("Animator not assigned!");
+        if (rb == null) Debug.LogError("Rigidbody not assigned!");
+
+        mainCamera = Camera.main;
     }
 
     void Update()
     {
-        HandleChargeLogic();
+        if (IsAttacking) return;
+
+        float resetDelay = (comboStep == 0) ? comboResetTime : (comboStep == 2 ? comboEndDelay : comboResetTime);
+
+        if (Time.time - lastAttackTime > resetDelay)
+        {
+            comboStep = 0;
+        }
+
         if (Input.GetMouseButtonDown(0))
         {
-            Debug.Log("▶️ StartPrepare envoyé");
-            animator.SetTrigger("StartPrepare");
+            RotateTowardMouse();
+            StartLightAttack();
         }
-
     }
 
-    private void HandleChargeLogic()
+    private void RotateTowardMouse()
     {
-        if (Input.GetMouseButtonDown(0) && !isCharging && !isAttacking)
+        var ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+        if (Physics.Raycast(ray, out var hitInfo, Mathf.Infinity, groundMask))
         {
-            isCharging = true;
-            chargeStartTime = Time.time;
-            animator.SetTrigger("StartPrepare");
-
-            if (movementScript) movementScript.enabled = false;
-            if (followScript) followScript.enabled = true;
-        }
-
-        if (isCharging && Time.time - chargeStartTime >= chargeThreshold)
-        {
-            animator.SetBool("IsChargingHeavy", true);
-        }
-
-        if (Input.GetMouseButtonUp(0) && isCharging)
-        {
-            isCharging = false;
-            float heldTime = Time.time - chargeStartTime;
-            animator.SetBool("IsChargingHeavy", false);
-
-            if (heldTime >= chargeThreshold)
-            {
-                animator.SetTrigger("HeavyAttack");
-                StartCoroutine(ExecuteAttack());
-            }
-            else if (Time.time >= lastAttackTime + attackCooldown)
-            {
-                animator.SetTrigger("LightAttack");
-                StartCoroutine(PerformCombo());
-            }
+            Vector3 direction = hitInfo.point - transform.position;
+            direction.y = 0;
+            transform.forward = direction;
         }
     }
 
-    private IEnumerator ExecuteAttack()
+    public void StartLightAttack()
+    {
+        if (isAttacking) return;
+
+        animator.SetBool(IsInCombat, true);
+
+        if (currentAttackCoroutine != null)
+            StopCoroutine(currentAttackCoroutine);
+        currentAttackCoroutine = StartCoroutine(PerformAttack(light: true));
+    }
+
+    private IEnumerator PerformAttack(bool light)
     {
         isAttacking = true;
 
-        Vector3 direction = transform.forward;
-        float dashEndTime = Time.time + attackDashTime;
+        if (light)
+        {
+            switch (comboStep)
+            {
+                case 0:
+                    animator.SetTrigger("Hit 1");
+                    comboStep = 1;
+                    break;
+                case 1:
+                    animator.SetTrigger("Hit 2");
+                    comboStep = 2;
+                    break;
+                case 2:
+                    animator.SetTrigger("Hit 3");
+                    comboStep = 0;
+                    break;
+            }
+        }
 
+        lastAttackTime = Time.time;
+
+        // Petit dash vers la direction du regard
+        float dashEndTime = Time.time + attackDashTime;
+        Vector3 dashDirection = transform.forward;
         while (Time.time < dashEndTime)
         {
-            rb.MovePosition(rb.position + direction * attackDashSpeed * Time.fixedDeltaTime);
+            rb.MovePosition(rb.position + dashDirection * attackDashSpeed * Time.fixedDeltaTime);
             yield return new WaitForFixedUpdate();
         }
 
-        yield return new WaitForSeconds(attackDelay);
-        yield return new WaitForSeconds(movementDisableDuration);
+        // ✅ On vérifie les ennemis à toucher
+        CheckForEnemiesHit();
 
-        if (movementScript) movementScript.enabled = true;
-        if (followScript) followScript.enabled = false;
+        yield return new WaitForSeconds(comboLockTime);
 
         isAttacking = false;
+        animator.SetBool(IsInCombat, false);
     }
 
-    private IEnumerator PerformCombo()
+    private void CheckForEnemiesHit()
     {
-        isAttacking = true;
-        lastAttackTime = Time.time;
+        Vector3 center = transform.position + transform.forward * 1f;
+        Collider[] hits = Physics.OverlapSphere(center, hitRange, enemyLayer);
 
-        if (comboStep == 0)
+        foreach (Collider hit in hits)
         {
-            animator.SetTrigger("Hit 1");
-            comboStep = 1;
+            Health enemyHealth = hit.GetComponent<Health>();
+            if (enemyHealth != null)
+            {
+                enemyHealth.TakeDamage(damageAmount);
+            }
         }
-        else if (comboStep == 1 && Time.time - lastAttackTime <= maxComboDelay)
-        {
-            animator.SetTrigger("Hit 2");
-            comboStep = 2;
-        }
-        else if (comboStep == 2 && Time.time - lastAttackTime <= maxComboDelay)
-        {
-            animator.SetTrigger("Hit 3");
-            comboStep = 0;
-        }
-        else
-        {
-            comboStep = 0;
-            animator.SetTrigger("Hit 1");
-        }
+    }
 
-        yield return new WaitForSeconds(attackDelay);
-        yield return new WaitForSeconds(movementDisableDuration);
-
-        if (movementScript) movementScript.enabled = true;
-        if (followScript) followScript.enabled = false;
-
-        isAttacking = false;
+    private void OnDrawGizmosSelected()
+    {
+        // ➕ Visualisation du rayon de frappe
+        Gizmos.color = Color.red;
+        Vector3 center = transform.position + transform.forward * 1f;
+        Gizmos.DrawWireSphere(center, hitRange);
     }
 }
-

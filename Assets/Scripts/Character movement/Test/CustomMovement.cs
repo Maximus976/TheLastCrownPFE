@@ -7,7 +7,11 @@ public class CustomMovement : MonoBehaviour
     public float speed = 5f;
     public float rotationSpeed = 10f;
     [SerializeField] private float sprintMultiplier = 1.5f;
+    [SerializeField] private float sprintBoostMultiplier = 2f;
+    [SerializeField] private float sprintBoostDelay = 3f;
     private bool isSprinting = false;
+    private float runDuration = 0f;
+    private bool isBoostingSprint = false;
 
     [Header("Dash")]
     [SerializeField] private float dashSpeed = 15f;
@@ -15,16 +19,17 @@ public class CustomMovement : MonoBehaviour
     [SerializeField] private float dashCooldown = 1f;
     [SerializeField] private float dashRecoveryTime = 0.3f;
     private bool dashOnCooldown = false;
+    private bool isDashing = false;
 
     private Rigidbody rb;
     private Vector3 moveDirection;
-    private bool isDashing = false;
 
     private float inputTapTimer = 0f;
     private float tapDuration = 0.1f;
     private bool wasHoldingMovement = false;
 
     public Animator animator;
+    private CustomCombat combatScript;
 
     void Start()
     {
@@ -40,10 +45,14 @@ public class CustomMovement : MonoBehaviour
         animator.SetFloat("StrafeDirectionX", 0f);
         animator.SetFloat("StrafeDirectionZ", 0f);
         animator.SetFloat("InclineAngle", 0f);
+
+        combatScript = GetComponent<CustomCombat>();
     }
 
     void Update()
     {
+        if (combatScript != null && combatScript.IsAttacking) return;
+
         HandleInput();
 
         if (inputTapTimer > 0f)
@@ -56,14 +65,18 @@ public class CustomMovement : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (isDashing)
+        if (isDashing || (combatScript != null && combatScript.IsAttacking))
         {
             rb.velocity = Vector3.zero;
             return;
         }
 
-        float currentSpeed = isSprinting ? sprintMultiplier : 1f;
-        rb.velocity = new Vector3(moveDirection.x * speed * currentSpeed, rb.velocity.y, moveDirection.z * speed * currentSpeed);
+        float currentSpeed = isSprinting ? (isBoostingSprint ? sprintBoostMultiplier : sprintMultiplier) : 1f;
+
+        // ✅ Corrigé ici : on garde la vitesse verticale et on remplace seulement la partie horizontale
+        Vector3 currentVelocity = rb.velocity;
+        Vector3 horizontalVelocity = new Vector3(moveDirection.x, 0f, moveDirection.z).normalized * speed * currentSpeed;
+        rb.velocity = new Vector3(horizontalVelocity.x, currentVelocity.y, horizontalVelocity.z);
     }
 
     private void HandleInput()
@@ -111,7 +124,19 @@ public class CustomMovement : MonoBehaviour
 
         bool holdingMovement = moveDirection.magnitude > 0.1f;
         isSprinting = Input.GetKey(KeyCode.LeftShift) && holdingMovement;
-        float speedMultiplier = isSprinting ? sprintMultiplier : 1f;
+
+        if (isSprinting)
+        {
+            runDuration += Time.deltaTime;
+            isBoostingSprint = runDuration >= sprintBoostDelay;
+        }
+        else
+        {
+            runDuration = 0f;
+            isBoostingSprint = false;
+        }
+
+        float speedMultiplier = isSprinting ? (isBoostingSprint ? sprintBoostMultiplier : sprintMultiplier) : 1f;
 
         if (!wasHoldingMovement && holdingMovement)
         {
