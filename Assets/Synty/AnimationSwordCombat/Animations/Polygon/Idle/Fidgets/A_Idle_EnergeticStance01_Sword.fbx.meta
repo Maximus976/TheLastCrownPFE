@@ -44,7 +44,7 @@ ModelImporter:
       cycleOffset: 0
       loop: 0
       hasAdditiveReferencePose: 0
-      loopTime: 0
+      loopTime: 1
       loopBlend: 0
       loopBlendOrientation: 1
       loopBlendPositionY: 1
@@ -168,7 +168,7 @@ ModelImporter:
         weight: 1
       maskType: 1
       maskSource: {fileID: 31900000, guid: ebc8800d7aef22a4aa95591cd452157d, type: 2}
-      additiveReferencePoseFrame: 0.9
+      additiveReferencePoseFrame: 1
     isReadable: 0
   meshes:
     lODScreenPercentages: []
@@ -838,7 +838,8 @@ ModelImporter:
     hasTranslationDoF: 0
     hasExtraRoot: 0
     skeletonHasParents: 1
-  lastHumanDescriptionAvatarSource: {fileID: 9000000, guid: 68a29e70ae95f6a4195bf0fcbb538019, type: 3}
+  lastHumanDescriptionAvatarSource: {fileID: 9000000, guid: 68a29e70ae95f6a4195bf0fcbb538019,
+    type: 3}
   autoGenerateAvatarMappingIfUnspecified: 1
   animationType: 3
   humanoidOversampling: 1
