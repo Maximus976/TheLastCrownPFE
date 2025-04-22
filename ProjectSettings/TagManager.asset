@@ -7,6 +7,8 @@ TagManager:
   - Sword
   - Ennemi
   - Wall
+  - Levier
+  - MurDestructible
   layers:
   - Default
   - TransparentFX

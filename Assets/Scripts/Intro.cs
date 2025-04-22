@@ -16,79 +16,73 @@ public class TextPair
 public class Intro : MonoBehaviour
 {
     [Header("UI Settings")]
-    [Tooltip("UI Text pour la première ligne")]
     public Text line1Text;
-    [Tooltip("UI Text pour la deuxième ligne")]
     public Text line2Text;
 
     [Header("Text Pairs")]
-    [Tooltip("Liste des paires de textes à afficher")]
     public List<TextPair> textPairs = new List<TextPair>();
 
     [Header("Timing")]
-    [Tooltip("Délai avant de commencer à afficher la première paire de texte")]
     public float initialDelay = 2f;
-    [Tooltip("Durée du fade (in et out) pour chaque ligne, en secondes")]
     public float fadeDuration = 1f;
-    [Tooltip("Temps pendant lequel la paire reste visible après les fade in, en secondes")]
     public float waitAfterFadeIn = 2f;
 
     [Header("Music Settings")]
-    [Tooltip("AudioSource dédié à la musique de fond")]
     public AudioSource musicSource;
-    [Tooltip("Clip audio de la musique d'intro")]
     public AudioClip backgroundMusic;
-    [Tooltip("Volume cible de la musique une fois le fade in terminé")]
     public float targetMusicVolume = 1f;
-    [Tooltip("Durée du fade in pour la musique")]
     public float musicFadeDuration = 2f;
 
+    [Header("Voice Over")]
+    public List<AudioClip> voiceClips = new List<AudioClip>();
+    public float voiceFadeOutDuration = 0.5f;
+
     [Header("Scene Settings")]
-    [Tooltip("Nom de la scène à charger à la fin de l'intro")]
     public string nextSceneName = "Scene2";
+
+    private AudioSource voiceSource;
 
     void Awake()
     {
-        // Initialisation automatique des paires de textes
-        textPairs = new List<TextPair>();
-       textPairs = new List<TextPair>()
-{
-    new TextPair {
-        line1 = "Au cœur de Camelot, le destin d'un roi se dessine,",
-        line2 = "les murmures du passé annoncent la renaissance d'une ère glorieuse."
-    },
-    new TextPair {
-        line1 = "L'épée Excalibur, gardienne d'un pouvoir sacré,",
-        line2 = "attend d'être brandie par celui qui sauvera le royaume."
-    },
-    new TextPair {
-        line1 = "Dans les brumes mystiques, Merlin dévoile des prophéties oubliées,",
-        line2 = "guidant les âmes vaillantes vers la lumière."
-    },
-    new TextPair {
-        line1 = "Les chevaliers de la Table Ronde jurent fidélité à la justice,",
-        line2 = "leur courage illuminant l'obscurité des temps troublés."
-    },
-    new TextPair {
-        line1 = "Face aux puissances obscures qui menacent la sérénité de Camelot,",
-        line2 = "l'esprit d'Arthur s'élève pour restaurer l'honneur et la vérité."
-    }
-};
+        textPairs = new List<TextPair>()
+        {
+            new TextPair {
+                line1 = "Au cœur de Camelot, le destin d'un roi se dessine,",
+                line2 = "les murmures du passé annoncent la renaissance d'une ère glorieuse."
+            },
+            new TextPair {
+                line1 = "L'épée Excalibur, gardienne d'un pouvoir sacré,",
+                line2 = "attend d'être brandie par celui qui sauvera le royaume."
+            },
+            new TextPair {
+                line1 = "Dans les brumes mystiques, Merlin dévoile des prophéties oubliées,",
+                line2 = "guidant les âmes vaillantes vers la lumière."
+            },
+            new TextPair {
+                line1 = "Les chevaliers de la Table Ronde jurent fidélité à la justice,",
+                line2 = "leur courage illuminant l'obscurité des temps troublés."
+            },
+            new TextPair {
+                line1 = "Face aux puissances obscures qui menacent la sérénité de Camelot,",
+                line2 = "l'esprit d'Arthur s'élève pour restaurer l'honneur et la vérité."
+            }
+        };
     }
 
     void Start()
     {
-        // Démarre la musique si le clip est assigné, avec fade in
         if (musicSource != null && backgroundMusic != null)
         {
             musicSource.clip = backgroundMusic;
-            musicSource.loop = true; // pour que la musique se répète
-            musicSource.volume = 0;  // Commencer avec le volume à 0
+            musicSource.loop = true;
+            musicSource.volume = 0;
             musicSource.Play();
             StartCoroutine(FadeMusicIn());
         }
 
-        // S'assurer que les textes sont vides au départ
+        voiceSource = gameObject.AddComponent<AudioSource>();
+        voiceSource.playOnAwake = false;
+
         line1Text.text = "";
         line2Text.text = "";
         StartCoroutine(DisplayIntroPairs());
@@ -108,42 +102,54 @@ public class Intro : MonoBehaviour
 
     IEnumerator DisplayIntroPairs()
     {
-        // Attendre le délai initial avant de démarrer l'animation de la première paire
         yield return new WaitForSeconds(initialDelay);
 
-        // Pour chaque paire dans la liste
-        foreach (TextPair pair in textPairs)
+        for (int i = 0; i < textPairs.Count; i++)
         {
-            // Assigne le contenu des textes
+            TextPair pair = textPairs[i];
+
             line1Text.text = pair.line1;
             line2Text.text = pair.line2;
 
-            // Initialise l'opacité à 0 pour les deux lignes
             SetTextAlpha(line1Text, 0f);
             SetTextAlpha(line2Text, 0f);
 
-            // Fade in de la première ligne
+            // Lancement de la voix
+            AudioClip clip = (i < voiceClips.Count) ? voiceClips[i] : null;
+            if (clip != null)
+            {
+                voiceSource.clip = clip;
+                voiceSource.volume = 1f;
+                voiceSource.Play();
+            }
+
+            // Affiche la première phrase
             yield return StartCoroutine(FadeText(line1Text, 0f, 1f, fadeDuration));
 
-            // Fade in de la deuxième ligne (après que la première soit complète)
+            // Attend 4 secondes avant d'afficher la deuxième phrase
+            yield return new WaitForSeconds(2f);
+
+            // Affiche la deuxième phrase
             yield return StartCoroutine(FadeText(line2Text, 0f, 1f, fadeDuration));
 
-            // Attend que le joueur lise la paire
-            yield return new WaitForSeconds(waitAfterFadeIn);
+            // Attend le reste du clip (8 - 4 - voiceFadeOut)
+            float remainingTime = 8f - 4f - voiceFadeOutDuration;
+            yield return new WaitForSeconds(remainingTime);
 
-            // Fade out simultané des deux lignes
+            // Fade out de la voix
+            if (clip != null)
+                yield return StartCoroutine(FadeOutVoice());
+
+            // Disparition du texte
             yield return StartCoroutine(FadePair(line1Text, line2Text, 1f, 0f, fadeDuration));
         }
 
-        // Optionnel : Arrêter la musique si besoin
         if (musicSource != null)
             musicSource.Stop();
 
-        // Une fois toutes les paires affichées, changer de scène
         SceneManager.LoadScene(nextSceneName);
     }
 
-    // Coroutine pour faire apparaître ou disparaître un seul texte progressivement
     IEnumerator FadeText(Text textComponent, float startAlpha, float endAlpha, float duration)
     {
         float elapsed = 0f;
@@ -157,7 +163,6 @@ public class Intro : MonoBehaviour
         SetTextAlpha(textComponent, endAlpha);
     }
 
-    // Coroutine pour faire le fade de deux textes simultanément
     IEnumerator FadePair(Text t1, Text t2, float startAlpha, float endAlpha, float duration)
     {
         float elapsed = 0f;
@@ -173,7 +178,20 @@ public class Intro : MonoBehaviour
         SetTextAlpha(t2, endAlpha);
     }
 
-    // Méthode utilitaire pour définir l'opacité (alpha) d'un UI Text
+    IEnumerator FadeOutVoice()
+    {
+        float startVolume = voiceSource.volume;
+        float elapsed = 0f;
+        while (elapsed < voiceFadeOutDuration)
+        {
+            elapsed += Time.deltaTime;
+            voiceSource.volume = Mathf.Lerp(startVolume, 0f, elapsed / voiceFadeOutDuration);
+            yield return null;
+        }
+        voiceSource.Stop();
+        voiceSource.volume = 1f;
+    }
+
     void SetTextAlpha(Text textComponent, float alpha)
     {
         Color c = textComponent.color;

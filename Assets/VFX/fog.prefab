@@ -25,13 +25,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1294497640646187661}
+  serializedVersion: 2
   m_LocalRotation: {x: 0.2233202, y: -0, z: -0, w: 0.97474515}
   m_LocalPosition: {x: 13.22, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 25.808, y: 0, z: 0}
 --- !u!2083052967 &1294497640646187667
 VisualEffect:
@@ -41,11 +41,12 @@ VisualEffect:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1294497640646187661}
   m_Enabled: 1
-  m_Asset: {fileID: 8926484042661614526, guid: 440cee4de95adc7499539af0e6a8bacc, type: 3}
+  m_Asset: {fileID: 0}
   m_InitialEventName: OnPlay
   m_InitialEventNameOverriden: 0
   m_StartSeed: 0
   m_ResetSeedOnPlay: 1
+  m_AllowInstancing: 1
   m_ResourceVersion: 1
   m_PropertySheet:
     m_Float:
