@@ -5,44 +5,43 @@ using UnityEngine;
 public class LevierPillier : MonoBehaviour
 {
     public PillierAnim puzzleManager;  // Référence au gestionnaire de piliers
-    public int[] affectedPillars;     // Indices des piliers affectés par ce levier
-    public Transform leverHandle;      // Référence au levier (pour la rotation)
-    public float rotationAngle = -60f; // Angle de rotation du levier lors de l'activation
+    public int[] affectedPillars;      // Indices des piliers affectés par cette dalle
 
-    private bool isActivated = false;
-    private bool canActivate = false;
-
-    void Update()
-    {
-        if (canActivate && Input.GetKeyDown(KeyCode.E))
-        {
-            ActivateLever();
-        }
-    }
-
-    public void ActivateLever()
-    {
-        isActivated = !isActivated;
-        RotateHandle(isActivated);
-        Debug.Log("Levier activé, affecte les piliers : " + string.Join(", ", affectedPillars));  // Log pour vérifier les indices
-        puzzleManager.TogglePillars(affectedPillars);
-    }
-
-    void RotateHandle(bool activate)
-    {
-        float angle = activate ? rotationAngle : 0f;
-        leverHandle.localRotation = Quaternion.Euler(0, angle, 0);
-    }
+    private bool canActivate = false;   // Si le joueur peut interagir avec la dalle
 
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
+        {
             canActivate = true;
+        }
     }
 
     private void OnTriggerExit(Collider other)
     {
         if (other.CompareTag("Player"))
+        {
             canActivate = false;
+        }
+    }
+
+    private void OnTriggerStay(Collider other)
+    {
+        if (canActivate && other.CompareTag("Player") && !puzzleManager.isPuzzleSolved)  // On ne permet pas d'activer les dalles si le puzzle est résolu
+        {
+            ActivateTile();  // Activer la dalle lorsque le joueur est dessus
+        }
+    }
+
+    // Activation de la dalle, qui va affecter les piliers
+    private void ActivateTile()
+    {
+        if (puzzleManager == null || puzzleManager.IsAnyPillarMoving())  // Vérifie si des piliers sont en mouvement
+        {
+            return;  // Ne pas activer si les piliers sont en mouvement
+        }
+
+        // Si tout est bon, on active la dalle
+        puzzleManager.TogglePillars(affectedPillars);  // Affecte les piliers spécifiés
     }
 }

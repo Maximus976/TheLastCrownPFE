@@ -14,4 +14,10 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Loris.unity
     guid: 09d6655a56c7d154eb6c21b20542272e
+  - enabled: 1
+    path: Assets/Scenes/Loading.unity
+    guid: 5bd62788e2ac16a4e8e437098b61af6e
+  - enabled: 1
+    path: Assets/Scenes/Game/Tutoriel 3.0.unity
+    guid: 2e2d4261fa297de42b30bcb2eb1e1fee
   m_configObjects: {}
