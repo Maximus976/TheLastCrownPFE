@@ -241,7 +241,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   windClip: {fileID: 8300000, guid: aba4e762f809ac747a419f30786fd1ce, type: 3}
-  volume: 0.58
+  volume: 1
   playOnStart: 1
 --- !u!82 &7977306569454027262
 AudioSource:

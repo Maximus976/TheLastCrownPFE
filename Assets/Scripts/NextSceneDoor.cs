@@ -5,7 +5,7 @@ using UnityEngine.SceneManagement;
 
 public class NextSceneDoor : MonoBehaviour
 {
-    public string sceneToLoad = "Tutoriel 3.0";  // Le nom de la scène que tu veux charger après le chargement
+    public string sceneToLoad = "Tutoriel 4.0";  // Le nom de la scène que tu veux charger après le chargement
 
     private void OnTriggerEnter(Collider other)
     {

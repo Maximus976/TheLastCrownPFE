@@ -20,7 +20,7 @@ TagManager:
   - obstacle
   - Wall
   - Ennemi
-  - 
+  - WindFX
   - 
   - 
   - 
@@ -45,4 +45,7 @@ TagManager:
   m_SortingLayers:
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: WindFX
+    uniqueID: 1204077303
     locked: 0

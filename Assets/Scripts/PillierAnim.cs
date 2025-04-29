@@ -51,6 +51,8 @@ public class PillierAnim : MonoBehaviour
     {
         pillarsMoving++;
 
+        UpdateLiftSoundVolume(); // <-- On ajuste le volume dès qu’un pilier commence à bouger
+
         Vector3 startPos = pillarObjects[index].transform.localPosition;
         Vector3 targetPos = pillarStates[index]
             ? new Vector3(startPos.x, -12.69f, startPos.z)  // Pilier levé
@@ -58,9 +60,8 @@ public class PillierAnim : MonoBehaviour
 
         float elapsedTime = 0f;
 
-        if (liftSound != null)
+        if (liftSound != null && !liftSound.isPlaying)
         {
-            liftSound.volume = 1f;
             liftSound.Play();
         }
 
@@ -71,16 +72,8 @@ public class PillierAnim : MonoBehaviour
             float smoothT = Mathf.SmoothStep(0, 1, t);
             pillarObjects[index].transform.localPosition = Vector3.Lerp(startPos, targetPos, smoothT);
 
-            if (liftSound != null && elapsedTime > moveDuration * 0.7f)
-            {
-                liftSound.volume = Mathf.Lerp(1f, 0f, (elapsedTime - moveDuration * 0.7f) / (moveDuration * 0.3f));
-            }
-
             yield return null;
         }
-
-        if (liftSound != null)
-            liftSound.Stop();
 
         pillarObjects[index].transform.localPosition = targetPos;
 
@@ -89,8 +82,25 @@ public class PillierAnim : MonoBehaviour
 
         pillarsMoving--;
 
+        UpdateLiftSoundVolume(); // <-- On met à jour le volume à la fin du mouvement
+
+        if (pillarsMoving == 0 && liftSound != null)
+        {
+            liftSound.Stop();
+        }
+
         if (pillarsMoving == 0)
-            CheckWinCondition();  // Vérification de la condition de victoire
+            CheckWinCondition();
+    }
+
+    // Nouvelle méthode pour ajuster dynamiquement le volume du liftSound
+    private void UpdateLiftSoundVolume()
+    {
+        if (liftSound == null) return;
+
+        // Volume de base 1.0, on ajoute 0.2 par pilier en mouvement (max 2.0 par exemple)
+        float volume = Mathf.Clamp(1f + 0.2f * (pillarsMoving - 1), 0f, 2f);
+        liftSound.volume = volume;
     }
 
     private IEnumerator ShakePillar(int index)

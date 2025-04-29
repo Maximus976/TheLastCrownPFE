@@ -14,7 +14,7 @@ public class Loading : MonoBehaviour
 
     IEnumerator LoadAsyncScene()
     {
-        yield return new WaitForSeconds(2f);  // Temps de l'écran de chargement (ajuste à ton goût)
+        yield return new WaitForSeconds(1f);  // Temps de l'écran de chargement (ajuste à ton goût)
 
         AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(targetScene);  // Charge la scène suivante
         while (!asyncLoad.isDone)
