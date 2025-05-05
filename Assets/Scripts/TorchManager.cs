@@ -13,15 +13,15 @@ public class TorchManager : MonoBehaviour
 
     public AudioSource failSound;
     public AudioSource successSound;
+    public AudioSource doorOpenSound; // <-- Nouveau son ajouté ici
 
-    public Animator doorAnimator; // Utilise directement la variable ici
-
-    public string openTriggerName = "Open"; // Toujours bon d'avoir cette option
+    public Animator doorAnimator;
+    public string openTriggerName = "Open";
 
     public void OnTorchInteraction(Torch torch)
     {
         if (puzzleCompleted || torch.IsLit()) return;
-        
+
         int index = torch.torchIndex;
         int nextExpected = currentOrder.Count < correctOrder.Length ? correctOrder[currentOrder.Count] : -1;
 
@@ -48,10 +48,12 @@ public class TorchManager : MonoBehaviour
         foreach (Torch torch in torches)
             torch.Lock();
 
-        // Utilisation correcte de doorAnimator
         if (doorAnimator != null)
         {
             doorAnimator.SetTrigger(openTriggerName);
+
+            if (doorOpenSound) // <-- On joue le son de la porte ici
+                doorOpenSound.Play();
         }
     }
 
