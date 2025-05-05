@@ -31,6 +31,8 @@ public class CustomMovement : MonoBehaviour
     public Animator animator;
     private CustomCombat combatScript;
 
+    private float targetSpeedMultiplier = 1f;
+
     void Start()
     {
         rb = GetComponent<Rigidbody>();
@@ -71,11 +73,8 @@ public class CustomMovement : MonoBehaviour
             return;
         }
 
-        float currentSpeed = isSprinting ? (isBoostingSprint ? sprintBoostMultiplier : sprintMultiplier) : 1f;
-
-        // ✅ Corrigé ici : on garde la vitesse verticale et on remplace seulement la partie horizontale
         Vector3 currentVelocity = rb.velocity;
-        Vector3 horizontalVelocity = new Vector3(moveDirection.x, 0f, moveDirection.z).normalized * speed * currentSpeed;
+        Vector3 horizontalVelocity = new Vector3(moveDirection.x, 0f, moveDirection.z).normalized * speed * targetSpeedMultiplier;
         rb.velocity = new Vector3(horizontalVelocity.x, currentVelocity.y, horizontalVelocity.z);
     }
 
@@ -83,7 +82,8 @@ public class CustomMovement : MonoBehaviour
     {
         HandleMovement();
 
-        if (Input.GetKeyDown(KeyCode.C) && !isDashing && moveDirection.magnitude > 0.1f)
+        // ➔ Dash avec "C" clavier ou "Dash" manette (Rond/B)
+        if ((Input.GetKeyDown(KeyCode.C) || Input.GetButtonDown("Dash")) && !isDashing && moveDirection.magnitude > 0.1f)
         {
             StartCoroutine(PerformDash());
         }
@@ -91,22 +91,19 @@ public class CustomMovement : MonoBehaviour
 
     private void HandleMovement()
     {
-        float moveHorizontal = 0f;
-        float moveVertical = 0f;
+        float moveHorizontal = Input.GetAxis("Horizontal");
+        float moveVertical = Input.GetAxis("Vertical");
 
-        if (Input.GetKey("w")) moveVertical += 1f;
-        if (Input.GetKey("s")) moveVertical -= 1f;
-        if (Input.GetKey("a")) moveHorizontal -= 1f;
-        if (Input.GetKey("d")) moveHorizontal += 1f;
+        Vector3 localDirection = new Vector3(moveHorizontal, 0, moveVertical);
 
-        Vector3 localDirection = new Vector3(moveHorizontal, 0, moveVertical).normalized;
-
-        if (localDirection.magnitude == 0f)
+        if (localDirection.magnitude < 0.1f)
         {
             moveDirection = Vector3.zero;
         }
         else
         {
+            localDirection.Normalize();
+
             Transform cam = Camera.main.transform;
             Vector3 forward = cam.forward;
             Vector3 right = cam.right;
@@ -123,7 +120,8 @@ public class CustomMovement : MonoBehaviour
         }
 
         bool holdingMovement = moveDirection.magnitude > 0.1f;
-        isSprinting = Input.GetKey(KeyCode.LeftShift) && holdingMovement;
+
+        isSprinting = (Input.GetKey(KeyCode.LeftShift) || Input.GetButton("Sprint")) && holdingMovement;
 
         if (isSprinting)
         {
@@ -136,7 +134,14 @@ public class CustomMovement : MonoBehaviour
             isBoostingSprint = false;
         }
 
-        float speedMultiplier = isSprinting ? (isBoostingSprint ? sprintBoostMultiplier : sprintMultiplier) : 1f;
+        if (isSprinting)
+        {
+            targetSpeedMultiplier = isBoostingSprint ? sprintBoostMultiplier : sprintMultiplier;
+        }
+        else
+        {
+            targetSpeedMultiplier = 1f;
+        }
 
         if (!wasHoldingMovement && holdingMovement)
         {
@@ -146,7 +151,7 @@ public class CustomMovement : MonoBehaviour
         wasHoldingMovement = holdingMovement;
 
         float currentSpeed = animator.GetFloat("MoveSpeed");
-        float targetSpeed = holdingMovement ? 1f * speedMultiplier : 0f;
+        float targetSpeed = holdingMovement ? 1f * targetSpeedMultiplier : 0f;
         float smoothedSpeed = Mathf.Lerp(currentSpeed, targetSpeed, Time.deltaTime * 10f);
 
         animator.SetBool("MovementInputHeld", holdingMovement);
@@ -157,7 +162,7 @@ public class CustomMovement : MonoBehaviour
 
         animator.SetFloat("MoveSpeed", smoothedSpeed);
         animator.SetFloat("IsStrafing", 0f);
-        animator.SetFloat("ForwardStrafe", holdingMovement ? speedMultiplier : 0f);
+        animator.SetFloat("ForwardStrafe", holdingMovement ? targetSpeedMultiplier : 0f);
         animator.SetFloat("StrafeDirectionX", 0f);
         animator.SetFloat("StrafeDirectionZ", 0f);
         animator.SetFloat("InclineAngle", 0f);

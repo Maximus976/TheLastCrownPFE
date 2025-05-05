@@ -53,6 +53,10 @@ public class CustomCombat : MonoBehaviour
             RotateTowardMouse();
             StartLightAttack();
         }
+        else if (Input.GetButtonDown("Fire1"))
+        {
+            StartLightAttack();
+        }
     }
 
     private void RotateTowardMouse()
@@ -102,7 +106,6 @@ public class CustomCombat : MonoBehaviour
 
         lastAttackTime = Time.time;
 
-        // Petit dash vers la direction du regard
         float dashEndTime = Time.time + attackDashTime;
         Vector3 dashDirection = transform.forward;
         while (Time.time < dashEndTime)
@@ -111,7 +114,6 @@ public class CustomCombat : MonoBehaviour
             yield return new WaitForFixedUpdate();
         }
 
-        // ✅ On vérifie les ennemis à toucher
         CheckForEnemiesHit();
 
         yield return new WaitForSeconds(comboLockTime);
@@ -137,7 +139,6 @@ public class CustomCombat : MonoBehaviour
 
     private void OnDrawGizmosSelected()
     {
-        // ➕ Visualisation du rayon de frappe
         Gizmos.color = Color.red;
         Vector3 center = transform.position + transform.forward * 1f;
         Gizmos.DrawWireSphere(center, hitRange);
