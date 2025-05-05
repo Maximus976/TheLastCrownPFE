@@ -55,8 +55,8 @@ public class PillierAnim : MonoBehaviour
 
         Vector3 startPos = pillarObjects[index].transform.localPosition;
         Vector3 targetPos = pillarStates[index]
-            ? new Vector3(startPos.x, -12.69f, startPos.z)  // Pilier levé
-            : new Vector3(startPos.x, -16.07f, startPos.z);  // Pilier baissé
+            ? new Vector3(startPos.x, -4.64f, startPos.z)  // Pilier levé
+            : new Vector3(startPos.x, -7.71f, startPos.z);  // Pilier baissé
 
         float elapsedTime = 0f;
 

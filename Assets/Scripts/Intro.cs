@@ -1,5 +1,5 @@
 using UnityEngine;
-using UnityEngine.UI;             // Si tu utilises UI Text
+using TMPro;
 using UnityEngine.SceneManagement;
 using System.Collections;
 using System.Collections.Generic;
@@ -11,13 +11,14 @@ public class TextPair
     public string line1;
     [TextArea]
     public string line2;
+    public float delayBeforeLine2 = 2f; // Délai personnalisé entre ligne 1 et ligne 2
 }
 
 public class Intro : MonoBehaviour
 {
     [Header("UI Settings")]
-    public Text line1Text;
-    public Text line2Text;
+    public TMP_Text line1Text;
+    public TMP_Text line2Text;
 
     [Header("Text Pairs")]
     public List<TextPair> textPairs = new List<TextPair>();
@@ -25,7 +26,6 @@ public class Intro : MonoBehaviour
     [Header("Timing")]
     public float initialDelay = 2f;
     public float fadeDuration = 1f;
-    public float waitAfterFadeIn = 2f;
 
     [Header("Music Settings")]
     public AudioSource musicSource;
@@ -44,27 +44,37 @@ public class Intro : MonoBehaviour
 
     void Awake()
     {
-        textPairs = new List<TextPair>()
+        textPairs = new List<TextPair>
         {
             new TextPair {
-                line1 = "Au cœur de Camelot, le destin d'un roi se dessine,",
-                line2 = "les murmures du passé annoncent la renaissance d'une ère glorieuse."
+                line1 = "Écoute...\nCar ces eaux portent encore l’écho d’une histoire que peu connaissent.",
+                line2 = "Une histoire que j’ai vécue, la sienne,\n celle d'Arthur.",
+                delayBeforeLine2 = 3.6f
             },
             new TextPair {
-                line1 = "L'épée Excalibur, gardienne d'un pouvoir sacré,",
-                line2 = "attend d'être brandie par celui qui sauvera le royaume."
+                line1 = "Il n’était pas prince.\nNi noble, ni conquérant. Il n’était qu’un garçon, le coeur pur,\nle regard tourné vers les cimes des arbres.",
+                line2 = "Un Bûcheron, façonné par la nature, et pourtant, le destin l'avait déjà choisi.",
+                delayBeforeLine2 = 6f
             },
             new TextPair {
-                line1 = "Dans les brumes mystiques, Merlin dévoile des prophéties oubliées,",
-                line2 = "guidant les âmes vaillantes vers la lumière."
+                line1 = "Merlin l’avait trouvé enfant.\nIl l’avait élevé, guidé, et préparé...",
+                line2 = "Mais rien ne pouvait le préparer à ce jour.\nCelui où l’Ordre a brûlé son village, anéanti ses repères, et détruit sa paix.",
+                delayBeforeLine2 = 3.5f
             },
             new TextPair {
-                line1 = "Les chevaliers de la Table Ronde jurent fidélité à la justice,",
-                line2 = "leur courage illuminant l'obscurité des temps troublés."
+                line1 = "C’est alors que le voile est tombé. Il a appris son nom véritable,",
+                line2 = "\nle poids de son sang : héritier légitime du trône de Bretagne. Dernier espoir d'un royaume brisé...",
+                delayBeforeLine2 = 1.8f
             },
             new TextPair {
-                line1 = "Face aux puissances obscures qui menacent la sérénité de Camelot,",
-                line2 = "l'esprit d'Arthur s'élève pour restaurer l'honneur et la vérité."
+                line1 = "Pour accomplir sa destinée,\nil devra traverser les ruines de l’ancien monde, se relever après chaque chute,",
+                line2 = "et affronter Mordred... fruit d'un serment brisé.",
+                delayBeforeLine2 = 5f
+            },
+            new TextPair {
+                line1 = "Je suis la Dame du Lac.\nSon arme, sa mémoire.",
+                line2 = "Et aujourd’hui, je vous raconte ce que j’ai vu,\navant que vous ne le découvriez par vous même.",
+                delayBeforeLine2 = 3f
             }
         };
     }
@@ -114,8 +124,9 @@ public class Intro : MonoBehaviour
             SetTextAlpha(line1Text, 0f);
             SetTextAlpha(line2Text, 0f);
 
-            // Lancement de la voix
             AudioClip clip = (i < voiceClips.Count) ? voiceClips[i] : null;
+            float clipLength = (clip != null) ? clip.length : 8f;
+
             if (clip != null)
             {
                 voiceSource.clip = clip;
@@ -123,24 +134,17 @@ public class Intro : MonoBehaviour
                 voiceSource.Play();
             }
 
-            // Affiche la première phrase
             yield return StartCoroutine(FadeText(line1Text, 0f, 1f, fadeDuration));
-
-            // Attend 4 secondes avant d'afficher la deuxième phrase
-            yield return new WaitForSeconds(2f);
-
-            // Affiche la deuxième phrase
+            yield return new WaitForSeconds(pair.delayBeforeLine2);
             yield return StartCoroutine(FadeText(line2Text, 0f, 1f, fadeDuration));
 
-            // Attend le reste du clip (8 - 4 - voiceFadeOut)
-            float remainingTime = 8f - 4f - voiceFadeOutDuration;
-            yield return new WaitForSeconds(remainingTime);
+            float remainingTime = clipLength - pair.delayBeforeLine2 - voiceFadeOutDuration - fadeDuration;
+            if (remainingTime > 0)
+                yield return new WaitForSeconds(remainingTime);
 
-            // Fade out de la voix
             if (clip != null)
                 yield return StartCoroutine(FadeOutVoice());
 
-            // Disparition du texte
             yield return StartCoroutine(FadePair(line1Text, line2Text, 1f, 0f, fadeDuration));
         }
 
@@ -150,7 +154,7 @@ public class Intro : MonoBehaviour
         SceneManager.LoadScene(nextSceneName);
     }
 
-    IEnumerator FadeText(Text textComponent, float startAlpha, float endAlpha, float duration)
+    IEnumerator FadeText(TMP_Text textComponent, float startAlpha, float endAlpha, float duration)
     {
         float elapsed = 0f;
         while (elapsed < duration)
@@ -163,7 +167,7 @@ public class Intro : MonoBehaviour
         SetTextAlpha(textComponent, endAlpha);
     }
 
-    IEnumerator FadePair(Text t1, Text t2, float startAlpha, float endAlpha, float duration)
+    IEnumerator FadePair(TMP_Text t1, TMP_Text t2, float startAlpha, float endAlpha, float duration)
     {
         float elapsed = 0f;
         while (elapsed < duration)
@@ -192,7 +196,7 @@ public class Intro : MonoBehaviour
         voiceSource.volume = 1f;
     }
 
-    void SetTextAlpha(Text textComponent, float alpha)
+    void SetTextAlpha(TMP_Text textComponent, float alpha)
     {
         Color c = textComponent.color;
         c.a = alpha;
