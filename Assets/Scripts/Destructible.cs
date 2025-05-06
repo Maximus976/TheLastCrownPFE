@@ -50,10 +50,9 @@ public class Destructible : MonoBehaviour
         Destroy(gameObject);
         Debug.Log("Objet complètement détruit !");
     }
-
-
     private void OnMouseDown()
     {
         TakeDamage(damageOnClick);
     }
+
 }

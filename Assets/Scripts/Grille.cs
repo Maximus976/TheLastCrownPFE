@@ -4,18 +4,15 @@ using UnityEngine;
 
 public class Grille : MonoBehaviour
 {
-    // Variable statique pour suivre la grille actuellement ouverte (s'il y en a une)
-    public static Grille grilleOuverte = null;
+    public Transform[] barreaux;
+    public Vector3[] positionsFermees;
+    public Vector3[] positionsOuvertes;
+    public float vitesse = 2f;
 
-    public Transform[] barreaux;           // Les 5 barreaux
-    public Vector3[] positionsFermees;     // Positions locales fermées
-    public Vector3[] positionsOuvertes;    // Positions locales ouvertes
-    public float vitesse = 2f;             // Vitesse de mouvement
-
-    private Vector3[] destinations;        // Destination actuelle de chaque barreau
+    private Vector3[] destinations;
     private bool enMouvement = false;
     private bool estOuverte = false;
-    private Collider[] colliders;          // Colliders des barreaux
+    private Collider[] colliders;
 
     void Start()
     {
@@ -59,11 +56,16 @@ public class Grille : MonoBehaviour
             {
                 enMouvement = false;
 
-                // Si la grille est ouverte, désactiver les colliders
+                // Désactiver les colliders si ouverte
                 if (estOuverte)
                 {
                     foreach (Collider col in colliders)
                         col.enabled = false;
+                }
+                else
+                {
+                    foreach (Collider col in colliders)
+                        col.enabled = true;
                 }
             }
         }
@@ -82,12 +84,6 @@ public class Grille : MonoBehaviour
 
     public void OuvrirGrille()
     {
-        // Fermer une autre grille si nécessaire
-        if (grilleOuverte != null && grilleOuverte != this)
-        {
-            grilleOuverte.FermerGrille();
-        }
-
         for (int i = 0; i < barreaux.Length; i++)
         {
             destinations[i] = positionsOuvertes[i];
@@ -95,7 +91,6 @@ public class Grille : MonoBehaviour
 
         enMouvement = true;
         estOuverte = true;
-        grilleOuverte = this;
     }
 
     public void FermerGrille()
@@ -107,16 +102,5 @@ public class Grille : MonoBehaviour
 
         enMouvement = true;
         estOuverte = false;
-
-        // Réactiver les colliders
-        foreach (Collider col in colliders)
-        {
-            col.enabled = true;
-        }
-
-        if (grilleOuverte == this)
-        {
-            grilleOuverte = null;
-        }
     }
 }

@@ -956,8 +956,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 1.9911919, y: 2.0198293, z: 1.9677618}
+  m_Center: {x: 0.009561062, y: -0.0074207783, z: 0.05393374}
 --- !u!54 &6106887664421761681
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -983,7 +983,7 @@ Rigidbody:
   m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 0
-  m_Constraints: 0
+  m_Constraints: 126
   m_CollisionDetection: 0
 --- !u!114 &3394520883063897034
 MonoBehaviour:
@@ -999,9 +999,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   health: 100
   damageOnClick: 25
-  destructionEffect: {fileID: 8902093753820357178, guid: 0aab7b815f8f0d54a8d449c8d5c89abe,
+  destructionEffect: {fileID: 8902093753820357178, guid: 377f528e833a09343b9a5b94815535b0,
     type: 3}
-  destructionEffect2: {fileID: 0}
+  destructionEffect2: {fileID: 2536447958634885616, guid: cd589b2c14ab2bb4aa4279221a962224,
+    type: 3}
 --- !u!1 &3191026520897540991 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -8551654070373378105, guid: 955b3770f0d02a743acfa82d3db3944e,

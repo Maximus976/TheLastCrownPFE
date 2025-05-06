@@ -17,10 +17,10 @@ MonoBehaviour:
   categories: []
   uiBounds:
     serializedVersion: 2
-    x: 310
+    x: 309
     y: -190
     width: 2481
-    height: 1415
+    height: 1414
 --- !u!114 &114350483966674976
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -761,7 +761,7 @@ MonoBehaviour:
   m_Parent: {fileID: 114350483966674976}
   m_Children:
   - {fileID: 8926484042661614616}
-  m_UIPosition: {x: 942, y: 827}
+  m_UIPosition: {x: 942, y: 829}
   m_UICollapsed: 0
   m_UISuperCollapsed: 0
   m_InputSlots:
@@ -1032,7 +1032,7 @@ MonoBehaviour:
       m_Type:
         m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
           PublicKeyToken=b77a5c561934e089
-      m_SerializableObject: 0.3
+      m_SerializableObject: 0.8
     m_Space: 2147483647
   m_Property:
     name: Lifetime
@@ -1094,7 +1094,7 @@ MonoBehaviour:
       m_Type:
         m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
           PublicKeyToken=b77a5c561934e089
-      m_SerializableObject: 1
+      m_SerializableObject: 3.22
     m_Space: 2147483647
   m_Property:
     name: Size
@@ -1878,7 +1878,7 @@ MonoBehaviour:
       m_Type:
         m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
           PublicKeyToken=b77a5c561934e089
-      m_SerializableObject: 3
+      m_SerializableObject: 5
     m_Space: 2147483647
   m_Property:
     name: _voronoiScale
@@ -1916,7 +1916,7 @@ MonoBehaviour:
       m_Type:
         m_SerializableType: UnityEngine.Color, UnityEngine.CoreModule, Version=0.0.0.0,
           Culture=neutral, PublicKeyToken=null
-      m_SerializableObject: '{"r":53.71218490600586,"g":55.0654411315918,"b":3.6363892555236818,"a":0.9725490212440491}'
+      m_SerializableObject: '{"r":0.0,"g":7.798400402069092,"b":10.966972351074219,"a":0.9725490212440491}'
     m_Space: 2147483647
   m_Property:
     name: _Color
@@ -2082,7 +2082,7 @@ MonoBehaviour:
       m_Type:
         m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
           PublicKeyToken=b77a5c561934e089
-      m_SerializableObject: 5
+      m_SerializableObject: 4
     m_Space: 2147483647
   m_Property:
     name: _VoronoiSpeed
@@ -3656,7 +3656,7 @@ MonoBehaviour:
       m_Type:
         m_SerializableType: UnityEngine.Color, UnityEngine.CoreModule, Version=0.0.0.0,
           Culture=neutral, PublicKeyToken=null
-      m_SerializableObject: '{"r":1.0,"g":0.3078150153160095,"b":0.0,"a":2.0}'
+      m_SerializableObject: '{"r":0.0,"g":0.021962642669677736,"b":1.0,"a":2.0}'
     m_Space: 2147483647
   m_Property:
     name: _Color
@@ -3822,7 +3822,7 @@ MonoBehaviour:
       m_Type:
         m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
           PublicKeyToken=b77a5c561934e089
-      m_SerializableObject: 3
+      m_SerializableObject: 2.79
     m_Space: 2147483647
   m_Property:
     name: _VoronoiSpeed
