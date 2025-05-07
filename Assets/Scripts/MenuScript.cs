@@ -2,139 +2,71 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using System.Collections;
+using UnityEngine.EventSystems;
+using System.Collections.Generic;
+using TMPro;
 
 public class MenuScript : MonoBehaviour
 {
-    [Header("UI Elements")]
-    public GameObject mainMenuPanel;  // Le panel principal du menu
-    public GameObject optionsPanel;   // Le panel des options
+    public List<CustomMenuItem> menuItems;  // Liste des éléments du menu
+    private int currentIndex = 0;           // Index de l'élément sélectionné
+    private bool inputLocked = false;       // Empêche les entrées rapides pour éviter des changements trop rapides
 
-    public Slider volumeSlider;       // Le slider pour régler le volume
-    public Text volumeText;           // Le texte affichant le volume actuel
-    public Slider brightnessSlider;   // Le slider pour régler la luminosité
-    public Text brightnessText;       // Le texte affichant la luminosité actuelle
-    public Button playButton;         // Le bouton pour démarrer le jeu
-    public Button optionsButton;      // Le bouton pour ouvrir les options
-    public Button quitButton;         // Le bouton pour quitter le jeu
-    public Button backButton;         // Le bouton pour revenir au menu principal
-    public Image fadeImage;
-    public float fadeDuration = 1.0f; // Durée du fondu pour l'image
-
-    [Header("Audio Settings")]
-    public AudioSource audioSource;   // L'AudioSource à contrôler (assigné dans l'inspecteur)
-    [Tooltip("Durée du fade out de la musique (en secondes)")]
-    public float musicFadeDuration = 3.0f; // Durée du fade pour la musique (prolonge le fade)
-
-    [Header("Lighting Settings")]
-    public Light mainLight;           // La lumière principale (assignée dans l'inspecteur)
-
-    private void Start()
+    void Start()
     {
-        // Initialisation des événements
-        playButton.onClick.AddListener(OnPlayButtonClicked);
-        optionsButton.onClick.AddListener(OnOptionsButtonClicked);
-        quitButton.onClick.AddListener(OnQuitButtonClicked);
-        backButton.onClick.AddListener(OnBackButtonClicked);
-        volumeSlider.onValueChanged.AddListener(OnVolumeChanged);
-        brightnessSlider.onValueChanged.AddListener(OnBrightnessChanged);
-
-        // Initialisation des panels
-        mainMenuPanel.SetActive(true);
-        optionsPanel.SetActive(false);
-
-        // Initialisation des sliders et des textes
-        volumeSlider.value = audioSource.volume;
-        volumeText.text = "Volume: " + Mathf.RoundToInt(audioSource.volume * 100).ToString() + "%";
-
-        if (mainLight != null)
+        if (menuItems.Count > 0)
         {
-            brightnessSlider.value = mainLight.intensity;
-            brightnessText.text = "Luminosité: " + Mathf.RoundToInt(mainLight.intensity * 100).ToString() + "%";
-        }
-
-        if (fadeImage != null)
-        {
-            // L'image doit être entièrement transparente au démarrage
-            fadeImage.color = new Color(0, 0, 0, 0);
+            UpdateSelection();  // Met à jour la sélection initiale si la liste n'est pas vide
         }
     }
 
-    public void OnPlayButtonClicked()
+    void Update()
     {
-        Debug.Log("Play Button Clicked!");
-        StartCoroutine(FadeOutAndLoadScene());
-    }
+        // Vérifie que la liste n'est pas vide et que l'index est valide
+        if (menuItems.Count == 0)
+            return;
 
-    private IEnumerator FadeOutAndLoadScene()
-    {
-        // D'abord, fade out progressif de la musique
-        if (audioSource != null)
+        // Récupère l'entrée verticale (joystick ou flèches)
+        float vertical = Input.GetAxisRaw("Vertical");
+
+        // Si l'entrée est valide et non verrouillée
+        if (!inputLocked && Mathf.Abs(vertical) > 0.5f)
         {
-            float startVolume = audioSource.volume;
-            for (float t = 0; t < musicFadeDuration; t += Time.deltaTime)
-            {
-                float ratio = t / musicFadeDuration;
-                audioSource.volume = Mathf.Lerp(startVolume, 0, ratio);
-                yield return null;
-            }
-            audioSource.volume = 0;
+            currentIndex = (vertical < 0)
+                ? (currentIndex + 1) % menuItems.Count  // Descendre dans la liste
+                : (currentIndex - 1 + menuItems.Count) % menuItems.Count;  // Monter dans la liste
+
+            UpdateSelection();  // Met à jour la sélection visuelle
+            StartCoroutine(UnlockInputAfterDelay(0.2f));  // Verrouille les entrées pendant un court délai
         }
 
-        // Ensuite, fade out de l'écran (augmentation progressive de l'alpha à 1)
-        if (fadeImage != null)
+        // Utilise GetKeyDown pour détecter la pression d'une touche spécifique (par exemple, le bouton "X" de la manette)
+        if (Input.GetKeyDown(KeyCode.JoystickButton1))  // "JoystickButton1" est le bouton pour interagir
         {
-            for (float t = 0; t < fadeDuration; t += Time.deltaTime)
-            {
-                float alpha = t / fadeDuration;
-                fadeImage.color = new Color(0, 0, 0, alpha);
-                yield return null;
-            }
-            fadeImage.color = new Color(0, 0, 0, 1);
+            menuItems[currentIndex].Select();  // Sélectionne l'élément actuel
         }
-
-        // Charger la scène suivante
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
-
-        yield return null;
     }
 
-    private void OnOptionsButtonClicked()
+    // Met à jour l'état de sélection de chaque élément
+    public void UpdateSelection()
     {
-        Debug.Log("Options Button Clicked!");
-        // Passer du menu principal aux options
-        mainMenuPanel.SetActive(false);
-        optionsPanel.SetActive(true);
-    }
+        if (menuItems.Count == 0)
+            return;
 
-    private void OnQuitButtonClicked()
-    {
-        Debug.Log("Quit Button Clicked!");
-        Application.Quit();
-    }
+        // S'assure que l'index actuel est dans la plage de la liste
+        currentIndex = Mathf.Clamp(currentIndex, 0, menuItems.Count - 1);
 
-    private void OnBackButtonClicked()
-    {
-        // Revenir au menu principal depuis le panel des options
-        optionsPanel.SetActive(false);
-        mainMenuPanel.SetActive(true);
-    }
-
-    private void OnVolumeChanged(float value)
-    {
-        // Met à jour le texte du volume en fonction du slider
-        volumeText.text = "Volume: " + Mathf.RoundToInt(value * 100).ToString() + "%";
-        // Met à jour le volume de l'AudioSource
-        audioSource.volume = value;
-    }
-
-    private void OnBrightnessChanged(float value)
-    {
-        if (mainLight != null)
+        for (int i = 0; i < menuItems.Count; i++)
         {
-            // Met à jour l'intensité de la lumière principale
-            mainLight.intensity = value;
-            // Met à jour le texte de la luminosité en fonction du slider
-            brightnessText.text = "Luminosité: " + Mathf.RoundToInt(value * 100).ToString() + "%";
+            menuItems[i].SetSelected(i == currentIndex);  // Change l'apparence de l'élément sélectionné
         }
+    }
+
+    // Permet de débloquer l'entrée après un délai
+    private IEnumerator UnlockInputAfterDelay(float delay)
+    {
+        inputLocked = true;
+        yield return new WaitForSeconds(delay);
+        inputLocked = false;
     }
 }

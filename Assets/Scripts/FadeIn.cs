@@ -25,18 +25,21 @@ public class FadeIn : MonoBehaviour
     {
         if (fadeImage != null)
         {
+            // Délai avant le début du fondu
+            yield return new WaitForSeconds(2f);
+
             // Fade in (diminution de l'alpha de 1 à 0 avec une courbe d'easing)
             for (float t = 0; t < fadeDuration; t += Time.deltaTime)
             {
-                // Utilisation d'une courbe quadratique pour ralentir la baisse
                 float progress = t / fadeDuration;
-                float alpha = 1 - Mathf.Pow(progress, 2); // Plus lent au début
+                float alpha = 1 - Mathf.Pow(progress, 2);
                 fadeImage.color = new Color(0, 0, 0, alpha);
                 yield return null;
             }
 
-            // Assurez-vous que l'image est complètement transparente
+            // S'assurer que l'image est bien complètement transparente
             fadeImage.color = new Color(0, 0, 0, 0);
+            fadeImage.gameObject.SetActive(false); // Facultatif : désactiver l'image après le fade
         }
     }
 }

@@ -30,20 +30,19 @@ public class PauseMenu : MonoBehaviour
     private Vector3 initialCameraPosition;
     private Quaternion initialCameraRotation;
 
-    private bool isPaused = false;
-
     [Header("Buttons Settings")]
-    public List<Button> buttons; // Liste des boutons
-    public Color normalColor = Color.white; // Couleur par défaut
-    public Color hoverColor = Color.gray; // Couleur au survol
-    public float transitionSpeed = 5f; // Vitesse de transition des couleurs
+    public List<Button> buttons;
+    public Color normalColor = Color.white;
+    public Color hoverColor = Color.gray;
+    public float transitionSpeed = 5f;
 
     private Dictionary<Button, Image> buttonImages = new Dictionary<Button, Image>();
     private Dictionary<Button, bool> isHovering = new Dictionary<Button, bool>();
 
+    private bool isPaused = false;
+
     void Start()
     {
-        // Initialisation des boutons
         foreach (var button in buttons)
         {
             if (button == null) continue;
@@ -57,75 +56,83 @@ public class PauseMenu : MonoBehaviour
 
                 var eventTrigger = button.gameObject.AddComponent<EventTrigger>();
 
-                // PointerEnter
                 var pointerEnter = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
                 pointerEnter.callback.AddListener((eventData) => OnPointerEnter(button));
                 eventTrigger.triggers.Add(pointerEnter);
 
-                // PointerExit
                 var pointerExit = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
                 pointerExit.callback.AddListener((eventData) => OnPointerExit(button));
                 eventTrigger.triggers.Add(pointerExit);
             }
-            else
-            {
-                Debug.LogWarning($"Aucun composant Image trouvé sur le bouton {button.name} !");
-            }
         }
 
-        // Désactivation des panneaux au démarrage
         pauseMenuUI.SetActive(false);
         optionsPanel.SetActive(false);
 
-        // Configuration des boutons
         resumeButton.onClick.AddListener(() => { Resume(); ClearButtonSelection(); });
         settingsButton.onClick.AddListener(() => { OpenOptions(); ClearButtonSelection(); });
         mainMenuButton.onClick.AddListener(() => { GoToMainMenu(); ClearButtonSelection(); });
         quitButton.onClick.AddListener(() => { QuitGame(); ClearButtonSelection(); });
         backButton.onClick.AddListener(() => { CloseOptions(); ClearButtonSelection(); });
 
-        // Initialisation du volume
         volumeSlider.onValueChanged.AddListener(OnVolumeChanged);
         volumeSlider.value = audioSource.volume;
         volumeText.text = "Volume: " + Mathf.RoundToInt(audioSource.volume * 100) + "%";
 
-        // Sauvegarde de la position et de la rotation de la caméra
         if (mainCamera != null)
         {
             initialCameraPosition = mainCamera.transform.position;
             initialCameraRotation = mainCamera.transform.rotation;
         }
 
-        // Fade-in initial
-        if (fadeImage != null)
-        {
-            fadeImage.color = new Color(0, 0, 0, 1);
-            StartCoroutine(FadeIn());
-        }
+        StartCoroutine(FadeFromBlack());
+
+        var nav = volumeSlider.navigation;
+        nav.mode = Navigation.Mode.Explicit;
+        nav.selectOnDown = backButton;
+        volumeSlider.navigation = nav;
+
+        var backNav = backButton.navigation;
+        backNav.mode = Navigation.Mode.Explicit;
+        backNav.selectOnUp = volumeSlider;
+        backButton.navigation = backNav;
+
+        volumeSlider.wholeNumbers = false;
+        volumeSlider.minValue = 0f;
+        volumeSlider.maxValue = 1f;
+        volumeSlider.value = audioSource.volume;
     }
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Escape))
+        if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.JoystickButton9))
         {
             if (isPaused) Resume();
             else Pause();
         }
 
-        // Gestion des couleurs des boutons
+        if (isPaused && Input.GetKeyDown(KeyCode.JoystickButton1))
+        {
+            GameObject selected = EventSystem.current.currentSelectedGameObject;
+            if (selected != null)
+            {
+                var pointer = new PointerEventData(EventSystem.current);
+                ExecuteEvents.Execute(selected, pointer, ExecuteEvents.submitHandler);
+            }
+        }
+
         foreach (var button in buttons)
         {
             if (buttonImages.ContainsKey(button))
             {
-                var targetColor = isHovering[button] ? hoverColor : normalColor;
+                var targetColor = isHovering[button] || button.gameObject == EventSystem.current.currentSelectedGameObject ? hoverColor : normalColor;
                 buttonImages[button].color = Color.Lerp(buttonImages[button].color, targetColor, Time.unscaledDeltaTime * transitionSpeed);
             }
         }
 
-        // Désélection automatique des boutons si la souris n'est pas dessus
-        if (EventSystem.current.currentSelectedGameObject != null && !IsPointerOverUIElement())
+        if (EventSystem.current.currentSelectedGameObject == null && buttons.Count > 0)
         {
-            EventSystem.current.SetSelectedGameObject(null);
+            EventSystem.current.SetSelectedGameObject(buttons[0].gameObject);
         }
     }
 
@@ -133,8 +140,9 @@ public class PauseMenu : MonoBehaviour
     {
         isPaused = true;
         pauseMenuUI.SetActive(true);
-        Time.timeScale = 0f; // Pause le jeu, mais pas l'UI
+        Time.timeScale = 0f;
         UpdateCameraPosition(true);
+        EventSystem.current.SetSelectedGameObject(resumeButton.gameObject);
     }
 
     void Resume()
@@ -150,18 +158,32 @@ public class PauseMenu : MonoBehaviour
     {
         pauseMenuUI.SetActive(false);
         optionsPanel.SetActive(true);
+        StartCoroutine(SelectSliderNextFrame());
+    }
+
+    private IEnumerator SelectSliderNextFrame()
+    {
+        yield return null;
+        EventSystem.current.SetSelectedGameObject(null);
+        EventSystem.current.SetSelectedGameObject(volumeSlider.gameObject);
     }
 
     void CloseOptions()
     {
         optionsPanel.SetActive(false);
         pauseMenuUI.SetActive(true);
+        EventSystem.current.SetSelectedGameObject(settingsButton.gameObject);
     }
 
     void GoToMainMenu()
     {
         StartCoroutine(FadeOutAndLoadScene("Menu"));
         Time.timeScale = 1f;
+    }
+
+    void QuitGame()
+    {
+        Application.Quit();
     }
 
     private void UpdateCameraPosition(bool isPaused)
@@ -185,6 +207,8 @@ public class PauseMenu : MonoBehaviour
     {
         if (fadeImage != null)
         {
+            fadeImage.gameObject.SetActive(true);
+
             for (float t = 0; t < fadeDuration; t += Time.unscaledDeltaTime)
             {
                 float alpha = t / fadeDuration;
@@ -198,10 +222,18 @@ public class PauseMenu : MonoBehaviour
         SceneManager.LoadScene(sceneName);
     }
 
-    private IEnumerator FadeIn()
+    private IEnumerator FadeFromBlack()
     {
         if (fadeImage != null)
         {
+            // Démarre avec l'image complètement noire
+            fadeImage.color = new Color(0, 0, 0, 1);
+            fadeImage.gameObject.SetActive(true);
+
+            // Attend 2 secondes avant de commencer le fade
+            yield return new WaitForSecondsRealtime(2f);
+
+            // Fade vers transparent
             for (float t = 0; t < fadeDuration; t += Time.unscaledDeltaTime)
             {
                 float alpha = 1 - (t / fadeDuration);
@@ -209,7 +241,9 @@ public class PauseMenu : MonoBehaviour
                 yield return null;
             }
 
+            // Assure que l'image est complètement transparente et la désactive
             fadeImage.color = new Color(0, 0, 0, 0);
+            fadeImage.gameObject.SetActive(false);
         }
     }
 
@@ -219,16 +253,12 @@ public class PauseMenu : MonoBehaviour
         volumeText.text = "Volume: " + Mathf.RoundToInt(value * 100) + "%";
     }
 
-    void QuitGame()
-    {
-        Application.Quit();
-    }
-
     private void OnPointerEnter(Button button)
     {
         if (isHovering.ContainsKey(button))
         {
             isHovering[button] = true;
+            EventSystem.current.SetSelectedGameObject(button.gameObject);
         }
     }
 
@@ -243,10 +273,5 @@ public class PauseMenu : MonoBehaviour
     private void ClearButtonSelection()
     {
         EventSystem.current.SetSelectedGameObject(null);
-    }
-
-    private bool IsPointerOverUIElement()
-    {
-        return EventSystem.current.IsPointerOverGameObject();
     }
 }
