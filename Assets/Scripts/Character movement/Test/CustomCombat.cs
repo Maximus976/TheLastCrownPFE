@@ -19,6 +19,10 @@ public class CustomCombat : MonoBehaviour
     [SerializeField] private float hitRange = 1.5f;
     [SerializeField] private LayerMask enemyLayer;
 
+    [Header("VFX Settings")]
+    [SerializeField] private GameObject attackVFXPrefab;
+    [SerializeField] private Transform vfxSpawnPoint;
+
     private int comboStep = 0;
     private float lastAttackTime = 0f;
     private bool isAttacking = false;
@@ -33,6 +37,7 @@ public class CustomCombat : MonoBehaviour
     {
         if (animator == null) Debug.LogError("Animator not assigned!");
         if (rb == null) Debug.LogError("Rigidbody not assigned!");
+        if (vfxSpawnPoint == null) Debug.LogError("VFX Spawn Point not assigned!");
 
         mainCamera = Camera.main;
     }
@@ -85,6 +90,9 @@ public class CustomCombat : MonoBehaviour
     {
         isAttacking = true;
 
+        Vector3 dashDirection = transform.forward;
+        Quaternion vfxRotation = Quaternion.LookRotation(dashDirection);
+
         if (light)
         {
             switch (comboStep)
@@ -100,14 +108,20 @@ public class CustomCombat : MonoBehaviour
                 case 2:
                     animator.SetTrigger("Hit 3");
                     comboStep = 0;
+                    vfxRotation = Quaternion.LookRotation(dashDirection) * Quaternion.Euler(0, 0, 90f); // coup horizontal
                     break;
             }
         }
 
         lastAttackTime = Time.time;
 
+        // Instancier le VFX
+        if (attackVFXPrefab != null && vfxSpawnPoint != null)
+        {
+            Instantiate(attackVFXPrefab, vfxSpawnPoint.position, vfxRotation);
+        }
+
         float dashEndTime = Time.time + attackDashTime;
-        Vector3 dashDirection = transform.forward;
         while (Time.time < dashEndTime)
         {
             rb.MovePosition(rb.position + dashDirection * attackDashSpeed * Time.fixedDeltaTime);
@@ -129,10 +143,19 @@ public class CustomCombat : MonoBehaviour
 
         foreach (Collider hit in hits)
         {
+            // Si c'est un ennemi
             Health enemyHealth = hit.GetComponent<Health>();
             if (enemyHealth != null)
             {
                 enemyHealth.TakeDamage(damageAmount);
+                continue;
+            }
+
+            // Si c'est un objet destructible
+            Destructible destructible = hit.GetComponent<Destructible>();
+            if (destructible != null)
+            {
+                destructible.TakeDamage(damageAmount);
             }
         }
     }

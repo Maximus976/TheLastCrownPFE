@@ -5,89 +5,196 @@ using UnityEngine.AI;
 
 public class MageEnemy : MonoBehaviour
 {
+    private enum MageState
+    {
+        Idle,
+        Chasing,
+        PreparingAttack,
+        Attacking,
+        PreparingRetreat,
+        Retreating,
+        Paralyzed
+    }
+
     [Header("Combat Settings")]
-    [SerializeField] private float detectionRange = 12f;
-    [SerializeField] private float attackRange = 8f;
-    [SerializeField] private float retreatDistance = 3f;
-    [SerializeField] private float retreatLength = 5f;
-    [SerializeField] private float retreatCooldown = 3f;
+    [SerializeField] private float detectionRange = 15f;
+    [SerializeField] private float attackRange = 10f;
+    [SerializeField] private float tooCloseDistance = 4f;
+    [SerializeField] private float attackDelay = 1f;
     [SerializeField] private float attackCooldown = 2f;
+    [SerializeField] private float retreatCooldown = 5f;
+    [SerializeField] private float retreatDistance = 5f;
+    [SerializeField] private float retreatDuration = 1f;
+    [SerializeField] private float paralyzeDuration = 3f;
     [SerializeField] private GameObject projectilePrefab;
     [SerializeField] private Transform firePoint;
-    [SerializeField] private float projectileSpeed = 10f;
-
-    [Header("Patrol Settings")]
-    [SerializeField] private float patrolRadius = 10f;
-    [SerializeField] private float patrolDelay = 2f;
+    [SerializeField] private float projectileSpeed = 12f;
 
     [Header("Target")]
     [SerializeField] private Transform player;
 
     private NavMeshAgent agent;
+    private Animator animator;
+    private MageState currentState = MageState.Idle;
+    private float stateTimer;
     private float lastAttackTime;
     private float lastRetreatTime;
+    private float lastHitTime;
+    private bool wasRecentlyHit = false;
     private Vector3 initialPosition;
-    private Vector3 patrolTarget;
-    private float patrolCooldown;
-    private Animator animator;
 
-    private void Start()
+    void Start()
     {
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
         initialPosition = transform.position;
-        patrolCooldown = patrolDelay;
 
         if (player == null && GameObject.FindGameObjectWithTag("Player") != null)
             player = GameObject.FindGameObjectWithTag("Player").transform;
     }
 
-    private void Update()
+    void Update()
     {
         if (player == null) return;
 
         float distance = Vector3.Distance(transform.position, player.position);
 
-        if (distance <= detectionRange)
+        switch (currentState)
         {
-            if (distance <= attackRange && distance > retreatDistance)
-            {
-                agent.SetDestination(transform.position); // Stop moving
-                FacePlayer();
-
-                if (Time.time - lastAttackTime >= attackCooldown)
-                    Attack();
-            }
-            else if (distance <= retreatDistance && Time.time - lastRetreatTime >= retreatCooldown)
-            {
-                RetreatFromPlayer();
-            }
-            else
-            {
-                agent.SetDestination(player.position); // Follow the player
-            }
-        }
-        else
-        {
-            Patrol();
+            case MageState.Idle:
+                HandleIdle(distance);
+                break;
+            case MageState.Chasing:
+                HandleChasing(distance);
+                break;
+            case MageState.PreparingAttack:
+                HandlePreparingAttack(distance);
+                break;
+            case MageState.Attacking:
+                HandleAttacking(distance);
+                break;
+            case MageState.PreparingRetreat:
+                HandlePreparingRetreat(distance);
+                break;
+            case MageState.Retreating:
+                HandleRetreating();
+                break;
+            case MageState.Paralyzed:
+                HandleParalyzed();
+                break;
         }
     }
 
-    private void RetreatFromPlayer()
+    private void HandleIdle(float distance)
     {
-        Vector3 dir = (transform.position - player.position).normalized;
-        Vector3 retreatPos = transform.position + dir * retreatLength;
-
-        if (NavMesh.SamplePosition(retreatPos, out NavMeshHit hit, 5f, NavMesh.AllAreas))
+        if (distance <= detectionRange)
         {
-            agent.SetDestination(hit.position);
+            Debug.Log("Mage: Player detected, starting chase!");
+            currentState = MageState.Chasing;
+        }
+    }
+
+    private void HandleChasing(float distance)
+    {
+        if (distance <= attackRange)
+        {
+            agent.SetDestination(transform.position);
+            stateTimer = attackDelay;
+            Debug.Log("Mage: Preparing to attack!");
+            currentState = MageState.PreparingAttack;
         }
         else
         {
-            agent.SetDestination(retreatPos); // fallback if sample fails
+            agent.SetDestination(player.position);
+            FacePlayer();
+        }
+    }
+
+    private void HandlePreparingAttack(float distance)
+    {
+        stateTimer -= Time.deltaTime;
+        FacePlayer();
+        if (stateTimer <= 0f)
+        {
+            Debug.Log("Mage: Attack!");
+            Attack();
+            currentState = MageState.Attacking;
+        }
+    }
+
+    private void HandleAttacking(float distance)
+    {
+        FacePlayer();
+
+        if (Time.time - lastAttackTime >= attackCooldown)
+        {
+            if (distance <= tooCloseDistance && Time.time - lastRetreatTime >= retreatCooldown)
+            {
+                Debug.Log("Mage: Player too close, preparing retreat!");
+                stateTimer = 2f; // Wait before retreat
+                currentState = MageState.PreparingRetreat;
+            }
+            else if (distance <= attackRange)
+            {
+                Debug.Log("Mage: Attack again!");
+                stateTimer = attackDelay;
+                currentState = MageState.PreparingAttack;
+            }
+            else if (distance > detectionRange)
+            {
+                Debug.Log("Mage: Player running away, chasing again!");
+                currentState = MageState.Chasing;
+            }
+            else
+            {
+                Debug.Log("Mage: Player moved, chasing again!");
+                currentState = MageState.Chasing;
+            }
         }
 
-        lastRetreatTime = Time.time;
+        // Si en train de se faire frapper trop près
+        if (wasRecentlyHit && distance <= tooCloseDistance)
+        {
+            Debug.Log("Mage: Paralyzed by player attacks!");
+            stateTimer = paralyzeDuration;
+            currentState = MageState.Paralyzed;
+        }
+    }
+
+    private void HandlePreparingRetreat(float distance)
+    {
+        stateTimer -= Time.deltaTime;
+        if (stateTimer <= 0f)
+        {
+            Vector3 retreatDir = (transform.position - player.position).normalized;
+            agent.SetDestination(transform.position + retreatDir * retreatDistance);
+            stateTimer = retreatDuration;
+            lastRetreatTime = Time.time;
+            Debug.Log("Mage: Retreating!");
+            currentState = MageState.Retreating;
+        }
+    }
+
+    private void HandleRetreating()
+    {
+        stateTimer -= Time.deltaTime;
+        if (stateTimer <= 0f)
+        {
+            agent.SetDestination(transform.position);
+            Debug.Log("Mage: Stopped retreat, reassess situation.");
+            currentState = MageState.Attacking; // After retreat, back to fighting
+        }
+    }
+
+    private void HandleParalyzed()
+    {
+        stateTimer -= Time.deltaTime;
+        if (stateTimer <= 0f)
+        {
+            wasRecentlyHit = false;
+            Debug.Log("Mage: No longer paralyzed, resuming fight!");
+            currentState = MageState.Attacking;
+        }
     }
 
     private void Attack()
@@ -104,25 +211,10 @@ public class MageEnemy : MonoBehaviour
             animator.SetTrigger("Attack");
     }
 
-    private void Patrol()
+    public void ReceiveHit()
     {
-        if (!agent.pathPending && agent.remainingDistance < 0.5f)
-        {
-            patrolCooldown -= Time.deltaTime;
-            if (patrolCooldown <= 0f)
-            {
-                Vector3 randomDir = Random.insideUnitSphere * patrolRadius;
-                randomDir += initialPosition;
-
-                if (NavMesh.SamplePosition(randomDir, out NavMeshHit hit, patrolRadius, NavMesh.AllAreas))
-                {
-                    patrolTarget = hit.position;
-                    agent.SetDestination(patrolTarget);
-                }
-
-                patrolCooldown = patrolDelay;
-            }
-        }
+        wasRecentlyHit = true;
+        lastHitTime = Time.time;
     }
 
     private void FacePlayer()
@@ -144,9 +236,6 @@ public class MageEnemy : MonoBehaviour
         Gizmos.DrawWireSphere(transform.position, attackRange);
 
         Gizmos.color = Color.blue;
-        Gizmos.DrawWireSphere(transform.position, retreatDistance);
-
-        Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(transform.position, patrolRadius);
+        Gizmos.DrawWireSphere(transform.position, tooCloseDistance);
     }
 }
