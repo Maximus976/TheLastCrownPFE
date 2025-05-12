@@ -20,6 +20,7 @@ public class Intro : MonoBehaviour
     public TMP_Text line2Text;
     public Image imageDisplay;
     public Image fadeImage;
+    public Image skipCircleUI; // UI circulaire pour le chargement du skip
 
     [Header("Text Pairs")]
     public List<TextPair> textPairs = new List<TextPair>();
@@ -46,38 +47,43 @@ public class Intro : MonoBehaviour
 
     private AudioSource voiceSource;
 
+    // Saut d’intro
+    private float skipTimer = 0f;
+    private float skipHoldTime = 1.5f;
+    private bool introSkipped = false;
+
     void Awake()
     {
         textPairs = new List<TextPair>
         {
             new TextPair {
-                line1 = "\u00c9coute...\nCar ces eaux portent encore l\u2019\u00e9cho d\u2019une histoire que peu connaissent.",
-                line2 = "Une histoire que j\u2019ai v\u00e9cue, la sienne,\n celle d'Arthur.",
+                line1 = "Écoute...\nCar ces eaux portent encore l’écho d’une histoire que peu connaissent.",
+                line2 = "Une histoire que j’ai vécue, la sienne,\n celle d'Arthur.",
                 delayBeforeLine2 = 3.6f
             },
             new TextPair {
-                line1 = "Il n\u2019\u00e9tait pas prince.\nNi noble, ni conqu\u00e9rant. Il n\u2019\u00e9tait qu\u2019un gar\u00e7on, le coeur pur,\nle regard tourn\u00e9 vers les cimes des arbres.",
-                line2 = "Un B\u00fbcheron, fa\u00e7onn\u00e9 par la nature, et pourtant, le destin l'avait d\u00e9j\u00e0 choisi.",
+                line1 = "Il n’était pas prince.\nNi noble, ni conquérant. Il n’était qu’un garçon, le coeur pur,\nle regard tourné vers les cimes des arbres.",
+                line2 = "Un Bûcheron, façonné par la nature, et pourtant, le destin l'avait déjà choisi.",
                 delayBeforeLine2 = 6f
             },
             new TextPair {
-                line1 = "Merlin l\u2019avait trouv\u00e9 enfant.\nIl l\u2019avait \u00e9lev\u00e9, guid\u00e9, et pr\u00e9par\u00e9...",
-                line2 = "Mais rien ne pouvait le pr\u00e9parer \u00e0 ce jour.\nCelui o\u00f9 l\u2019Ordre a br\u00fbl\u00e9 son village, an\u00e9anti ses rep\u00e8res, et d\u00e9truit sa paix.",
+                line1 = "Merlin l’avait trouvé enfant.\nIl l’avait élevé, guidé, et préparé...",
+                line2 = "Mais rien ne pouvait le préparer à ce jour.\nCelui où l’Ordre a brûlé son village, anéanti ses repères, et détruit sa paix.",
                 delayBeforeLine2 = 3.5f
             },
             new TextPair {
-                line1 = "C\u2019est alors que le voile est tomb\u00e9. Il a appris son nom v\u00e9ritable,",
-                line2 = "\nle poids de son sang : h\u00e9ritier l\u00e9gitime du tr\u00f4ne de Bretagne. Dernier espoir d'un royaume bris\u00e9...",
+                line1 = "C’est alors que le voile est tombé. Il a appris son nom véritable,",
+                line2 = "\nle poids de son sang : héritier légitime du trône de Bretagne. Dernier espoir d'un royaume brisé...",
                 delayBeforeLine2 = 1.8f
             },
             new TextPair {
-                line1 = "Pour accomplir sa destin\u00e9e,\nil devra traverser les ruines de l\u2019ancien monde, se relever apr\u00e8s chaque chute,",
-                line2 = "et affronter Mordred... fruit d'un serment bris\u00e9.",
+                line1 = "Pour accomplir sa destinée,\nil devra traverser les ruines de l’ancien monde, se relever après chaque chute,",
+                line2 = "et affronter Mordred... fruit d'un serment brisé.",
                 delayBeforeLine2 = 5f
             },
             new TextPair {
-                line1 = "Je suis la Dame du Lac.\nSon arme, sa m\u00e9moire.",
-                line2 = "Et aujourd\u2019hui, je vous raconte ce que j\u2019ai vu,\navant que vous ne le d\u00e9couvriez par vous m\u00eame.",
+                line1 = "Je suis la Dame du Lac.\nSon arme, sa mémoire.",
+                line2 = "Et aujourd’hui, je vous raconte ce que j’ai vu,\navant que vous ne le découvriez par vous même.",
                 delayBeforeLine2 = 3f
             }
         };
@@ -99,7 +105,39 @@ public class Intro : MonoBehaviour
 
         line1Text.text = "";
         line2Text.text = "";
+
+        if (skipCircleUI != null)
+            skipCircleUI.fillAmount = 0f;
+
         StartCoroutine(DisplayIntroPairs());
+    }
+
+    void Update()
+    {
+        if (introSkipped) return;
+
+        if (Input.GetKey(KeyCode.JoystickButton2))
+        {
+            skipTimer += Time.deltaTime;
+            float progress = skipTimer / skipHoldTime;
+            if (skipCircleUI != null)
+                skipCircleUI.fillAmount = progress;
+
+            if (skipTimer >= skipHoldTime)
+            {
+                introSkipped = true;
+                StopAllCoroutines();
+                if (musicSource != null) musicSource.Stop();
+                if (voiceSource != null && voiceSource.isPlaying) voiceSource.Stop();
+                SceneManager.LoadScene(nextSceneName);
+            }
+        }
+        else
+        {
+            skipTimer = 0f;
+            if (skipCircleUI != null)
+                skipCircleUI.fillAmount = 0f;
+        }
     }
 
     IEnumerator FadeMusicIn()
@@ -120,6 +158,8 @@ public class Intro : MonoBehaviour
 
         for (int i = 0; i < textPairs.Count; i++)
         {
+            if (introSkipped) yield break;
+
             TextPair pair = textPairs[i];
 
             line1Text.text = pair.line1;

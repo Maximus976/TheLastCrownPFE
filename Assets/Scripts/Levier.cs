@@ -30,7 +30,7 @@ public class Levier : MonoBehaviour
 
     void Update()
     {
-        if (joueurDansZone && Input.GetKeyDown(KeyCode.E) && Time.time - dernierAppui > cooldown)
+        if (joueurDansZone && (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.JoystickButton2)) && Time.time - dernierAppui > cooldown)
         {
             dernierAppui = Time.time;
             levierActive = !levierActive;

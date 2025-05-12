@@ -5,7 +5,7 @@ using UnityEngine;
 public class IsometricCameraFollow : MonoBehaviour
 {
     public Transform target;
-    public Vector3 offset = new Vector3(0, 10, -15);
+    public Vector3 offset = new Vector3(5, -5, -5);
     public float followSpeed = 10f;
 
     void Start()

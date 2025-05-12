@@ -30,19 +30,22 @@ public class WindSpawn : MonoBehaviour
         if (windPrefabs.Length == 0 || player == null)
             return;
 
-        // Angle uniquement entre 45° et 135° pour viser le haut du joueur
-        float angle = Random.Range(45f, 135f) * Mathf.Deg2Rad;
+        float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
         float radius = Random.Range(minSpawnRadius, maxSpawnRadius);
 
-        Vector3 offset = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f) * radius;
-        offset.y -= offset.x * isoSkew;
+        Vector3 offset = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * radius;
+
+        // Corriger pour l'isoSkew dans Z si besoin (simuler un effet visuel)
+        // offset.z -= offset.x * isoSkew;
 
         Vector3 spawnPosition = player.position + offset;
 
+        // Y fixe pour rester à la bonne hauteur
+        spawnPosition.y = player.position.y;
         int index = Random.Range(0, windPrefabs.Length);
         GameObject chosenWind = windPrefabs[index];
 
-        GameObject newWind = Instantiate(chosenWind, spawnPosition, Quaternion.Euler(0f, 90f, 0f));
+        GameObject newWind = Instantiate(chosenWind, spawnPosition, Quaternion.Euler(0f, 180f, 0f));
         activeWinds.Add(newWind);
 
         if (activeWinds.Count > maxWindCount)

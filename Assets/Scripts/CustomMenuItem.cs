@@ -7,29 +7,33 @@ using UnityEngine.UI;
 [System.Serializable]
 public class CustomMenuItem
 {
-    public TMP_Text text;           // Texte TMP de l'élément du menu
-    public Button button;           // Le bouton associé à l'action
-    public GameObject leafLeft;     // Feuille gauche
-    public GameObject leafRight;    // Feuille droite
+    [Header("Références UI")]
+    public TMP_Text text;           // Texte de l'élément du menu
+    public Button button;           // Bouton associé
+    public GameObject leafLeft;     // Élément visuel à gauche
+    public GameObject leafRight;    // Élément visuel à droite
 
-    // Met à jour l'état de sélection de l'élément du menu
+    [Header("Couleurs")]
+    public Color selectedColor = Color.yellow;
+    public Color normalColor = Color.white;
+
+    // Met à jour l'état visuel selon la sélection
     public void SetSelected(bool isSelected)
     {
-        text.color = isSelected ? Color.yellow : Color.white;  // Change la couleur du texte
+        if (text != null)
+            text.color = isSelected ? selectedColor : normalColor;
 
         if (leafLeft != null)
-            leafLeft.SetActive(isSelected);  // Active ou désactive la feuille gauche
+            leafLeft.SetActive(isSelected);
 
         if (leafRight != null)
-            leafRight.SetActive(isSelected);  // Active ou désactive la feuille droite
+            leafRight.SetActive(isSelected);
     }
 
-    // Fonction appelée lorsqu'un élément est sélectionné
+    // Appelle l'action liée au bouton
     public void Select()
     {
         if (button != null)
-        {
-            button.onClick.Invoke();  // Appelle l'action associée au bouton
-        }
+            button.onClick.Invoke();
     }
 }
