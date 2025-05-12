@@ -20,6 +20,7 @@ public class CustomMovement : MonoBehaviour
     [SerializeField] private float dashRecoveryTime = 0.3f;
     private bool dashOnCooldown = false;
     private bool isDashing = false;
+    private Vector3 currentDashDirection; // Pour le Gizmo
 
     private Rigidbody rb;
     private Vector3 moveDirection;
@@ -69,7 +70,6 @@ public class CustomMovement : MonoBehaviour
     {
         if (isDashing || (combatScript != null && combatScript.IsAttacking))
         {
-            rb.velocity = Vector3.zero;
             return;
         }
 
@@ -82,7 +82,6 @@ public class CustomMovement : MonoBehaviour
     {
         HandleMovement();
 
-        // ➔ Dash avec "C" clavier ou "Dash" manette (Rond/B)
         if ((Input.GetKeyDown(KeyCode.C) || Input.GetButtonDown("Dash")) && !isDashing && moveDirection.magnitude > 0.1f)
         {
             StartCoroutine(PerformDash());
@@ -134,14 +133,9 @@ public class CustomMovement : MonoBehaviour
             isBoostingSprint = false;
         }
 
-        if (isSprinting)
-        {
-            targetSpeedMultiplier = isBoostingSprint ? sprintBoostMultiplier : sprintMultiplier;
-        }
-        else
-        {
-            targetSpeedMultiplier = 1f;
-        }
+        targetSpeedMultiplier = isSprinting
+            ? (isBoostingSprint ? sprintBoostMultiplier : sprintMultiplier)
+            : 1f;
 
         if (!wasHoldingMovement && holdingMovement)
         {
@@ -172,24 +166,31 @@ public class CustomMovement : MonoBehaviour
     {
         if (dashOnCooldown) yield break;
 
-        isDashing = true;
         dashOnCooldown = true;
         animator.SetTrigger("Slide");
 
-        Vector3 dashDirection = moveDirection.magnitude > 0.1f ? moveDirection.normalized : transform.forward;
-        float startTime = Time.time;
+        currentDashDirection = moveDirection.magnitude > 0.1f ? moveDirection.normalized : transform.forward;
 
-        while (Time.time < startTime + dashTime)
-        {
-            rb.MovePosition(rb.position + dashDirection * dashSpeed * Time.fixedDeltaTime);
-            yield return new WaitForFixedUpdate();
-        }
+        isDashing = true; // Très important : juste avant la vélocité
+        rb.velocity = currentDashDirection * dashSpeed;
+
+        yield return new WaitForSeconds(dashTime);
 
         rb.velocity = Vector3.zero;
-        yield return new WaitForSeconds(dashRecoveryTime);
 
+        yield return new WaitForSeconds(dashRecoveryTime);
         isDashing = false;
+
         yield return new WaitForSeconds(dashCooldown);
         dashOnCooldown = false;
+    }
+
+    private void OnDrawGizmos()
+    {
+        if (!isDashing) return;
+
+        Gizmos.color = Color.red;
+        Gizmos.DrawLine(transform.position, transform.position + currentDashDirection * 2f);
+        Gizmos.DrawSphere(transform.position + currentDashDirection * 2f, 0.1f);
     }
 }
