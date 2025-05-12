@@ -65,7 +65,7 @@ public class CharacterMovement : MonoBehaviour
     {
         if (isAttacking || isDashing)
         {
-            rb.velocity = Vector3.zero; // Bloquer complètement les mouvements pendant l'attaque ou le dash
+            //rb.velocity = Vector3.zero; // Bloquer complètement les mouvements pendant l'attaque ou le dash
             return;
         }
 
