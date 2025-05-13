@@ -542,11 +542,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f58c649311ce57b47aca788f4bfb075c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speed: 2
-  rotationSpeed: 10
+  baseSpeed: 3
+  fullSpeed: 5
   sprintMultiplier: 2.5
-  sprintBoostMultiplier: 4
-  sprintBoostDelay: 3
   dashSpeed: 15
   dashTime: 0.4
   dashCooldown: 1
@@ -568,15 +566,15 @@ MonoBehaviour:
   rb: {fileID: 5427007404186768451}
   attackDashSpeed: 3
   attackDashTime: 0.1
-  attackAnimDuration: 0.2
+  attackAnimDuration: 0.1
   comboResetTime: 1
   comboLockTime: 0.2
-  comboEndDelay: 2
+  comboEndDelay: 0.1
   groundMask:
     serializedVersion: 2
     m_Bits: 64
   damageAmount: 35
-  hitRange: 2.5
+  hitRange: 3
   enemyLayer:
     serializedVersion: 2
     m_Bits: 512
