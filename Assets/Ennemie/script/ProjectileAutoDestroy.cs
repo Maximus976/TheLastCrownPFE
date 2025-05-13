@@ -7,7 +7,7 @@ public class ProjectileAutoDestroy : MonoBehaviour
     [Header("Settings")]
     [SerializeField] private float lifeTime = 2f;
     [SerializeField] private int damage = 10;
-    [SerializeField] private string[] ignoreTags = { "Enemy" };
+    [SerializeField] private string[] ignoreTags = { "Ennemi" };
 
     private void Start()
     {

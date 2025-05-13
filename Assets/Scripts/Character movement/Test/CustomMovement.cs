@@ -4,27 +4,22 @@ using UnityEngine;
 public class CustomMovement : MonoBehaviour
 {
     [Header("Movement")]
-    public float speed = 5f;
-    public float rotationSpeed = 10f;
+    public float baseSpeed = 3f;              // Course lente (joystick léger)
+    public float fullSpeed = 5f;              // Course normale
     [SerializeField] private float sprintMultiplier = 1.5f;
-    [SerializeField] private float sprintBoostMultiplier = 2f;
-    [SerializeField] private float sprintBoostDelay = 3f;
-    private bool isSprinting = false;
-    private float runDuration = 0f;
-    private bool isBoostingSprint = false;
 
     [Header("Dash")]
     [SerializeField] private float dashSpeed = 15f;
     [SerializeField] private float dashTime = 0.2f;
     [SerializeField] private float dashCooldown = 1f;
     [SerializeField] private float dashRecoveryTime = 0.3f;
+
+    private bool isSprinting = false;
     private bool dashOnCooldown = false;
     private bool isDashing = false;
-    private Vector3 currentDashDirection; // Pour le Gizmo
-
+    private Vector3 currentDashDirection;
     private Rigidbody rb;
     private Vector3 moveDirection;
-
     private float inputTapTimer = 0f;
     private float tapDuration = 0.1f;
     private bool wasHoldingMovement = false;
@@ -32,7 +27,7 @@ public class CustomMovement : MonoBehaviour
     public Animator animator;
     private CustomCombat combatScript;
 
-    private float targetSpeedMultiplier = 1f;
+    private float targetSpeed = 0f;
 
     void Start()
     {
@@ -41,13 +36,6 @@ public class CustomMovement : MonoBehaviour
 
         if (animator == null)
             Debug.LogError("Animator component is missing!");
-
-        animator.SetFloat("MoveSpeed", 0f);
-        animator.SetFloat("IsStrafing", 0f);
-        animator.SetFloat("ForwardStrafe", 0f);
-        animator.SetFloat("StrafeDirectionX", 0f);
-        animator.SetFloat("StrafeDirectionZ", 0f);
-        animator.SetFloat("InclineAngle", 0f);
 
         combatScript = GetComponent<CustomCombat>();
     }
@@ -69,12 +57,10 @@ public class CustomMovement : MonoBehaviour
     void FixedUpdate()
     {
         if (isDashing || (combatScript != null && combatScript.IsAttacking))
-        {
             return;
-        }
 
         Vector3 currentVelocity = rb.velocity;
-        Vector3 horizontalVelocity = new Vector3(moveDirection.x, 0f, moveDirection.z).normalized * speed * targetSpeedMultiplier;
+        Vector3 horizontalVelocity = moveDirection.normalized * targetSpeed;
         rb.velocity = new Vector3(horizontalVelocity.x, currentVelocity.y, horizontalVelocity.z);
     }
 
@@ -93,70 +79,76 @@ public class CustomMovement : MonoBehaviour
         float moveHorizontal = Input.GetAxis("Horizontal");
         float moveVertical = Input.GetAxis("Vertical");
 
-        Vector3 localDirection = new Vector3(moveHorizontal, 0, moveVertical);
+        Vector3 localInput = new Vector3(moveHorizontal, 0, moveVertical);
+        float inputMagnitude = Mathf.Clamp01(localInput.magnitude);
 
-        if (localDirection.magnitude < 0.1f)
+        Transform cam = Camera.main.transform;
+        Vector3 forward = cam.forward;
+        Vector3 right = cam.right;
+        forward.y = 0;
+        right.y = 0;
+        forward.Normalize();
+        right.Normalize();
+
+        moveDirection = forward * moveVertical + right * moveHorizontal;
+
+        bool hasInput = inputMagnitude > 0.1f;
+
+        // ROTATION
+        if (hasInput && !combatScript.IsAttacking)
         {
-            moveDirection = Vector3.zero;
-        }
-        else
-        {
-            localDirection.Normalize();
-
-            Transform cam = Camera.main.transform;
-            Vector3 forward = cam.forward;
-            Vector3 right = cam.right;
-
-            forward.y = 0;
-            right.y = 0;
-            forward.Normalize();
-            right.Normalize();
-
-            moveDirection = localDirection.z * forward + localDirection.x * right;
-
             Quaternion targetRot = Quaternion.LookRotation(moveDirection);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, rotationSpeed * Time.deltaTime);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, 10f * Time.deltaTime);
         }
 
-        bool holdingMovement = moveDirection.magnitude > 0.1f;
+        // SPRINT
+        bool wantsToSprint = (Input.GetKey(KeyCode.LeftShift) || Input.GetButton("Sprint")) && inputMagnitude > 0.9f;
 
-        isSprinting = (Input.GetKey(KeyCode.LeftShift) || Input.GetButton("Sprint")) && holdingMovement;
-
-        if (isSprinting)
+        if (wantsToSprint)
         {
-            runDuration += Time.deltaTime;
-            isBoostingSprint = runDuration >= sprintBoostDelay;
+            targetSpeed = fullSpeed * sprintMultiplier;
+            isSprinting = true;
+        }
+        else if (inputMagnitude > 0.6f)
+        {
+            targetSpeed = fullSpeed;
+            isSprinting = false;
+        }
+        else if (inputMagnitude > 0.1f)
+        {
+            targetSpeed = baseSpeed;
+            isSprinting = false;
         }
         else
         {
-            runDuration = 0f;
-            isBoostingSprint = false;
+            targetSpeed = 0f;
+            isSprinting = false;
         }
 
-        targetSpeedMultiplier = isSprinting
-            ? (isBoostingSprint ? sprintBoostMultiplier : sprintMultiplier)
-            : 1f;
-
-        if (!wasHoldingMovement && holdingMovement)
+        // ANIMATIONS
+        if (!wasHoldingMovement && hasInput)
         {
             animator.SetBool("MovementInputTapped", true);
             inputTapTimer = tapDuration;
         }
-        wasHoldingMovement = holdingMovement;
+        wasHoldingMovement = hasInput;
 
-        float currentSpeed = animator.GetFloat("MoveSpeed");
-        float targetSpeed = holdingMovement ? 1f * targetSpeedMultiplier : 0f;
-        float smoothedSpeed = Mathf.Lerp(currentSpeed, targetSpeed, Time.deltaTime * 10f);
+        float currentAnimSpeed = animator.GetFloat("MoveSpeed");
 
-        animator.SetBool("MovementInputHeld", holdingMovement);
-        animator.SetBool("IsStopped", !holdingMovement);
+        float normalizedSpeed = 0f;
+        if (targetSpeed > 0f)
+            normalizedSpeed = Mathf.Clamp01(targetSpeed / (fullSpeed * sprintMultiplier)); // Normalize to max sprint speed
+
+        float smoothedSpeed = Mathf.Lerp(currentAnimSpeed, normalizedSpeed, Time.deltaTime * 10f);
+
+        animator.SetBool("MovementInputHeld", hasInput);
+        animator.SetBool("IsStopped", !hasInput);
         animator.SetBool("IsGrounded", true);
         animator.SetBool("IsJumping", false);
         animator.SetBool("IsStarting", false);
 
         animator.SetFloat("MoveSpeed", smoothedSpeed);
-        animator.SetFloat("IsStrafing", 0f);
-        animator.SetFloat("ForwardStrafe", holdingMovement ? targetSpeedMultiplier : 0f);
+        animator.SetFloat("ForwardStrafe", hasInput ? normalizedSpeed : 0f);
         animator.SetFloat("StrafeDirectionX", 0f);
         animator.SetFloat("StrafeDirectionZ", 0f);
         animator.SetFloat("InclineAngle", 0f);
@@ -169,9 +161,11 @@ public class CustomMovement : MonoBehaviour
         dashOnCooldown = true;
         animator.SetTrigger("Slide");
 
-        currentDashDirection = moveDirection.magnitude > 0.1f ? moveDirection.normalized : transform.forward;
+        Vector3 rawDir = moveDirection.magnitude > 0.1f ? moveDirection : transform.forward;
+        rawDir.y = 0f;
+        currentDashDirection = rawDir.normalized;
 
-        isDashing = true; // Très important : juste avant la vélocité
+        isDashing = true;
         rb.velocity = currentDashDirection * dashSpeed;
 
         yield return new WaitForSeconds(dashTime);
