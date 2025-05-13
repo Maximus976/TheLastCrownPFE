@@ -19,7 +19,13 @@ public class OptionsMenuController : MonoBehaviour
         // Juste lire et afficher la valeur du slider, pas la modifier
         volumeSlider.value = AudioListener.volume;
         UpdateVolumeText(volumeSlider.value);  // Utilisation de la méthode UpdateVolumeText
+        volumeSlider.onValueChanged.AddListener(SetVolume);  // Ajout de l'écouteur pour le slider
         eventSystem.SetSelectedGameObject(volumeSlider.gameObject);
+    }
+
+    void OnDisable()
+    {
+        volumeSlider.onValueChanged.RemoveListener(SetVolume);  // Nettoyer l'écouteur lorsque le menu est désactivé
     }
 
     void Update()
@@ -34,8 +40,8 @@ public class OptionsMenuController : MonoBehaviour
     // Mise à jour du volume (appelé depuis le Slider)
     public void SetVolume(float volume)
     {
-        AudioListener.volume = volume;
-        UpdateVolumeText(volume);  // Mise à jour du texte lorsque le volume change
+        AudioListener.volume = volume;  // Applique la nouvelle valeur du volume
+        UpdateVolumeText(volume);       // Mise à jour du texte lorsque le volume change
     }
 
     private void UpdateVolumeText(float volume)
