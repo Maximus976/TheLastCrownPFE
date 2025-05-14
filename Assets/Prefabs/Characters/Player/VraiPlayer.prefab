@@ -30,7 +30,7 @@ Transform:
   m_GameObject: {fileID: 260648340189595506}
   serializedVersion: 2
   m_LocalRotation: {x: 0.090423964, y: 0.90957606, z: -0.28678817, w: 0.28678823}
-  m_LocalPosition: {x: -33.614468, y: 5.4675465, z: 171.20123}
+  m_LocalPosition: {x: -3.3038406, y: 6.2301993, z: 7.315899}
   m_LocalScale: {x: 0.6967895, y: 0.69678956, z: 0.69678956}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -333,7 +333,7 @@ Transform:
   m_GameObject: {fileID: 9190588954444965795}
   serializedVersion: 2
   m_LocalRotation: {x: 0.090423964, y: 0.90957606, z: -0.28678817, w: 0.28678823}
-  m_LocalPosition: {x: -3.3038402, y: 4.2301993, z: 7.3158984}
+  m_LocalPosition: {x: -3.3038406, y: 6.2301993, z: 7.315899}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -359,7 +359,7 @@ MonoBehaviour:
   m_Priority: 10
   m_StandbyUpdate: 2
   m_LookAt: {fileID: 0}
-  m_Follow: {fileID: 3841176387139606842}
+  m_Follow: {fileID: 5829577203276557037}
   m_Lens:
     FieldOfView: 60.000004
     OrthographicSize: 10
@@ -795,6 +795,12 @@ MonoBehaviour:
   vfxSpawnPoint: {fileID: 3199771829375592800}
   vfxSpawnDelay: 0.1
   swordTransform: {fileID: 4466602544094291325}
+--- !u!4 &5829577203276557037 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4146871378787970716, guid: a3a751c3ff9cf31489769e2f5e3a4f51,
+    type: 3}
+  m_PrefabInstance: {fileID: 7596011368980382833}
+  m_PrefabAsset: {fileID: 0}
 --- !u!95 &7182877768465433408 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 775957645881853745, guid: a3a751c3ff9cf31489769e2f5e3a4f51,
