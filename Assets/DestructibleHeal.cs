@@ -1,9 +1,9 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.Rendering;
+    using System.Collections;
+    using System.Collections.Generic;
+    using UnityEngine;
+    using UnityEngine.Rendering;
 
-public class Destructible : MonoBehaviour
+    public class DestructibleHeal : MonoBehaviour
 {
     [Header("Paramètres de l'objet")]
     public int health = 100;
