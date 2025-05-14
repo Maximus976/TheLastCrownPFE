@@ -16,7 +16,7 @@ public class IsometricCameraFollow : MonoBehaviour
         }
     }
 
-    void LateUpdate()
+    private void FixedUpdate()
     {
         if (target != null)
         {
@@ -26,4 +26,9 @@ public class IsometricCameraFollow : MonoBehaviour
             transform.position = Vector3.MoveTowards(transform.position, targetPosition, followSpeed * Time.deltaTime);
         }
     }
+
+    /*void LateUpdate()
+    {
+        
+    }*/
 }
