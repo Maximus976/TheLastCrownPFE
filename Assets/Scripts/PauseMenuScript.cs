@@ -6,7 +6,6 @@ using UnityEngine.SceneManagement;
 public class PauseMenuScript : MonoBehaviour
 {
     public GameObject pauseMenuUI;
-    public GameObject gameUI;
     public GameObject[] menuButtons;
     public GameObject leafPrefab;
 
@@ -27,6 +26,7 @@ public class PauseMenuScript : MonoBehaviour
         for (int i = 0; i < menuButtons.Length; i++)
         {
             menuItems[i] = menuButtons[i].GetComponent<PauseMenuItem>();
+            menuButtons[i].SetActive(false); // Important : cachés au départ
         }
 
         UpdateSelection();
@@ -60,7 +60,7 @@ public class PauseMenuScript : MonoBehaviour
             StartCoroutine(UnlockInputAfterDelay(0.2f));
         }
 
-        if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.JoystickButton1))
+        if (!inputLocked && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.JoystickButton1)))
         {
             SelectButton(currentIndex);
         }
@@ -88,9 +88,9 @@ public class PauseMenuScript : MonoBehaviour
     public void OpenPauseMenu()
     {
         isPaused = true;
-        Time.timeScale = 0f;
         pauseMenuUI.SetActive(true);
-        gameUI.SetActive(false);
+        StartCoroutine(ShowMenuButtons());
+        Time.timeScale = 0f;
     }
 
     public void ResumeGame()
@@ -98,7 +98,6 @@ public class PauseMenuScript : MonoBehaviour
         isPaused = false;
         Time.timeScale = 1f;
         pauseMenuUI.SetActive(false);
-        gameUI.SetActive(true);
     }
 
     public void SelectButton(int index)
@@ -121,5 +120,45 @@ public class PauseMenuScript : MonoBehaviour
     {
         Debug.Log("Quitter le jeu");
         Application.Quit();
+    }
+
+    IEnumerator ShowMenuButtons()
+    {
+        foreach (GameObject button in menuButtons)
+        {
+            button.SetActive(false);
+        }
+
+        currentLeaf.SetActive(false);
+        inputLocked = true;
+
+        for (int i = 0; i < menuButtons.Length; i++)
+        {
+            GameObject button = menuButtons[i];
+            button.SetActive(true);
+
+            CanvasGroup group = button.GetComponent<CanvasGroup>();
+            if (group != null)
+            {
+                group.alpha = 0f;
+                float duration = 0.3f;
+                float elapsed = 0f;
+
+                while (elapsed < duration)
+                {
+                    elapsed += Time.unscaledDeltaTime;
+                    float t = Mathf.Clamp01(elapsed / duration);
+                    group.alpha = t;
+                    yield return null;
+                }
+
+                group.alpha = 1f;
+            }
+
+            yield return new WaitForSecondsRealtime(0.05f); // délai entre chaque bouton
+        }
+
+        UpdateSelection();
+        inputLocked = false;
     }
 }
