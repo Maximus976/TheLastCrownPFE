@@ -26,6 +26,8 @@ public class CustomMovement : MonoBehaviour
 
     private Rigidbody rb;
     private Vector3 moveDirection;
+    private Vector3 smoothedMoveDirection = Vector3.zero;
+    private Vector3 moveDirectionVelocity = Vector3.zero;
 
     private float inputTapTimer = 0f;
     private float tapDuration = 0.1f;
@@ -95,7 +97,7 @@ public class CustomMovement : MonoBehaviour
 
         if (localDirection.magnitude < 0.1f)
         {
-            moveDirection = Vector3.zero;
+            smoothedMoveDirection = Vector3.zero;
         }
         else
         {
@@ -110,14 +112,24 @@ public class CustomMovement : MonoBehaviour
             forward.Normalize();
             right.Normalize();
 
-            moveDirection = localDirection.z * forward + localDirection.x * right;
+            Vector3 rawMoveDir = localDirection.z * forward + localDirection.x * right;
 
-            Quaternion targetRot = Quaternion.LookRotation(moveDirection);
+            // Lisser la direction de mouvement
+            smoothedMoveDirection = Vector3.SmoothDamp(
+                smoothedMoveDirection,
+                rawMoveDir.normalized,
+                ref moveDirectionVelocity,
+                0.1f // ajustable
+            );
+
+            Quaternion targetRot = Quaternion.LookRotation(smoothedMoveDirection);
             if (!combatScript.IsAttacking)
             {
                 transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, rotationSpeed * Time.deltaTime);
             }
         }
+
+        moveDirection = smoothedMoveDirection;
 
         bool holdingMovement = moveDirection.magnitude > 0.1f;
         bool shiftHeld = Input.GetKey(KeyCode.LeftShift) || Input.GetButton("Sprint");
@@ -236,5 +248,10 @@ public class CustomMovement : MonoBehaviour
         Gizmos.color = Color.red;
         Gizmos.DrawLine(transform.position, transform.position + currentDashDirection * 2f);
         Gizmos.DrawSphere(transform.position + currentDashDirection * 2f, 0.1f);
+    }
+
+    public Vector3 GetMoveDirection()
+    {
+        return moveDirection;
     }
 }
