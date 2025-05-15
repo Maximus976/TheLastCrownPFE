@@ -94,7 +94,6 @@ public class MageEnemy : MonoBehaviour
     {
         if (distance <= detectionRange)
         {
-            Debug.Log("Mage: Player detected, starting chase!");
             currentState = MageState.Chasing;
         }
     }
@@ -105,7 +104,6 @@ public class MageEnemy : MonoBehaviour
         {
             agent.SetDestination(transform.position);
             stateTimer = attackDelay;
-            Debug.Log("Mage: Preparing to attack!");
             currentState = MageState.PreparingAttack;
         }
         else
@@ -121,7 +119,6 @@ public class MageEnemy : MonoBehaviour
         FacePlayer();
         if (stateTimer <= 0f)
         {
-            Debug.Log("Mage: Attack!");
             Attack();
             currentState = MageState.Attacking;
         }
@@ -135,31 +132,22 @@ public class MageEnemy : MonoBehaviour
         {
             if (distance <= tooCloseDistance && Time.time - lastRetreatTime >= retreatCooldown)
             {
-                Debug.Log("Mage: Player too close, preparing retreat!");
-                stateTimer = 0.5f; // Wait before retreat
+                stateTimer = 0.5f;
                 currentState = MageState.PreparingRetreat;
             }
             else if (distance <= attackRange)
             {
-                Debug.Log("Mage: Attack again!");
                 stateTimer = attackDelay;
                 currentState = MageState.PreparingAttack;
             }
-            else if (distance > detectionRange)
-            {
-                Debug.Log("Mage: Player running away, chasing again!");
-                currentState = MageState.Chasing;
-            }
             else
             {
-                Debug.Log("Mage: Player moved, chasing again!");
                 currentState = MageState.Chasing;
             }
         }
 
         if (wasRecentlyHit && distance <= tooCloseDistance)
         {
-            Debug.Log("Mage: Paralyzed by player attacks!");
             stateTimer = paralyzeDuration;
             currentState = MageState.Paralyzed;
         }
@@ -177,14 +165,12 @@ public class MageEnemy : MonoBehaviour
             if (NavMesh.SamplePosition(targetPos, out hit, 2f, NavMesh.AllAreas))
             {
                 agent.SetDestination(hit.position);
-                Debug.Log("Mage: Retreating to safe position.");
                 stateTimer = retreatDuration;
                 lastRetreatTime = Time.time;
                 currentState = MageState.Retreating;
             }
             else
             {
-                Debug.LogWarning("Mage: Retreat path blocked, fallback to chase.");
                 currentState = MageState.Chasing;
             }
         }
@@ -196,7 +182,6 @@ public class MageEnemy : MonoBehaviour
         if (stateTimer <= 0f)
         {
             agent.SetDestination(transform.position);
-            Debug.Log("Mage: Stopped retreat, reassess situation.");
             currentState = MageState.Attacking;
         }
     }
@@ -207,7 +192,6 @@ public class MageEnemy : MonoBehaviour
         if (stateTimer <= 0f)
         {
             wasRecentlyHit = false;
-            Debug.Log("Mage: No longer paralyzed, resuming fight!");
             currentState = MageState.Attacking;
         }
     }
@@ -231,21 +215,46 @@ public class MageEnemy : MonoBehaviour
         wasRecentlyHit = true;
         lastHitTime = Time.time;
 
+        Debug.Log("MageEnemy: ReceiveHit triggered.");
+
         if (animator != null)
-            animator.SetTrigger("Hit");
+        {
+            Debug.Log("MageEnemy: Triggering GetHit animation.");
+            animator.SetTrigger("GetHit"); 
+        }
+        else
+        {
+            Debug.LogWarning("MageEnemy: Animator missing!");
+        }
 
         if (meshRenderer != null)
+        {
             StartCoroutine(FlashColor());
+        }
+        else
+        {
+            Debug.LogWarning("MageEnemy: MeshRenderer not assigned.");
+        }
     }
+
 
     private IEnumerator FlashColor()
     {
-        Color originalColor = meshRenderer.material.color;
-        meshRenderer.material.color = flashColor;
+        Material mat = meshRenderer.material;
+
+        // On vérifie si le shader a "_BaseColor" (cas URP)
+        if (!mat.HasProperty("_BaseColor"))
+        {
+            Debug.LogWarning("Material does not have _BaseColor property, flash skipped.");
+            yield break;
+        }
+
+        Color originalColor = mat.GetColor("_BaseColor");
+        mat.SetColor("_BaseColor", flashColor);
 
         yield return new WaitForSeconds(flashDuration);
 
-        meshRenderer.material.color = originalColor;
+        mat.SetColor("_BaseColor", originalColor);
     }
 
     private void FacePlayer()
