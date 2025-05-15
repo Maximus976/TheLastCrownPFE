@@ -10,49 +10,49 @@ public class CustomMovement : MonoBehaviour
     [SerializeField] private float sprintMultiplier = 1.5f;
     [SerializeField] private float sprintBoostDelay = 1.5f;
 
-    private bool isSprinting = false;
-    private bool isBoostingSprint = false;
-    private float runDuration = 0f;
-    private float targetSpeedMultiplier = 1f;
+    [Header("Sprint Control")]
+    [SerializeField] private float sprintAngleTolerance = 35f;
 
     [Header("Dash")]
     [SerializeField] private float dashSpeed = 15f;
     [SerializeField] private float dashTime = 0.2f;
     [SerializeField] private float dashCooldown = 1f;
     [SerializeField] private float dashRecoveryTime = 0.3f;
-    private bool dashOnCooldown = false;
+
+    public Animator animator;
+
+    private bool isSprinting = false;
+    private float runDuration = 0f;
+    private float targetSpeedMultiplier = 1f;
     private bool isDashing = false;
+    private bool dashOnCooldown = false;
     private Vector3 currentDashDirection;
 
     private Rigidbody rb;
     private Vector3 moveDirection;
 
+    private bool wasHoldingMovement = false;
     private float inputTapTimer = 0f;
     private float tapDuration = 0.1f;
-    private bool wasHoldingMovement = false;
-
-    public Animator animator;
-    private CustomCombat combatScript;
 
     private bool usingGamepad = false;
     private float gamepadTimeout = 2f;
     private float gamepadTimer = 0f;
+
+    private CustomCombat combatScript;
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         rb.freezeRotation = true;
 
-        if (animator == null)
-            Debug.LogError("Animator component is missing!");
+        combatScript = GetComponent<CustomCombat>();
 
         animator.SetFloat("MoveSpeed", 0f);
         animator.SetFloat("IsStrafing", 1f);
         animator.SetFloat("ForwardStrafe", 0f);
         animator.SetFloat("StrafeDirectionX", 0f);
         animator.SetFloat("StrafeDirectionZ", 0f);
-
-        combatScript = GetComponent<CustomCombat>();
     }
 
     void Update()
@@ -76,9 +76,32 @@ public class CustomMovement : MonoBehaviour
             return;
 
         Vector3 currentVelocity = rb.velocity;
-        Vector3 targetVelocity = new Vector3(moveDirection.x, 0f, moveDirection.z).normalized * speed * targetSpeedMultiplier;
-        Vector3 smoothedVelocity = Vector3.Lerp(new Vector3(currentVelocity.x, 0f, currentVelocity.z), targetVelocity, Time.fixedDeltaTime * 10f);
+        Vector3 targetVelocity = moveDirection.normalized * speed * targetSpeedMultiplier;
+        Vector3 smoothedVelocity = Vector3.Lerp(currentVelocity, targetVelocity, Time.fixedDeltaTime * 10f);
         rb.velocity = new Vector3(smoothedVelocity.x, currentVelocity.y, smoothedVelocity.z);
+    }
+
+    private void DetectInputDevice()
+    {
+        if (Input.GetAxis("Mouse X") != 0 || Input.GetAxis("Mouse Y") != 0)
+        {
+            usingGamepad = false;
+            gamepadTimer = 0f;
+        }
+
+        if (Mathf.Abs(Input.GetAxis("RightStickHorizontal")) > 0.1f ||
+            Mathf.Abs(Input.GetAxis("RightStickVertical")) > 0.1f)
+        {
+            usingGamepad = true;
+            gamepadTimer = gamepadTimeout;
+        }
+
+        if (usingGamepad)
+        {
+            gamepadTimer -= Time.deltaTime;
+            if (gamepadTimer <= 0f)
+                usingGamepad = false;
+        }
     }
 
     private void HandleInput()
@@ -91,39 +114,12 @@ public class CustomMovement : MonoBehaviour
         }
     }
 
-    private void DetectInputDevice()
-    {
-        if (Input.GetAxis("Mouse X") != 0 || Input.GetAxis("Mouse Y") != 0)
-        {
-            usingGamepad = false;
-            gamepadTimer = 0f;
-        }
-
-        float rx = Input.GetAxis("RightStickHorizontal");
-        float ry = Input.GetAxis("RightStickVertical");
-
-        if (Mathf.Abs(rx) > 0.1f || Mathf.Abs(ry) > 0.1f)
-        {
-            usingGamepad = true;
-            gamepadTimer = gamepadTimeout;
-        }
-
-        if (usingGamepad)
-        {
-            gamepadTimer -= Time.deltaTime;
-            if (gamepadTimer <= 0f)
-            {
-                usingGamepad = false;
-            }
-        }
-    }
-
     private void HandleMovement()
     {
         float moveHorizontal = Input.GetAxis("Horizontal");
         float moveVertical = Input.GetAxis("Vertical");
 
-        Vector3 localDirection = new Vector3(moveHorizontal, 0, moveVertical);
+        Vector3 localDirection = new Vector3(moveHorizontal, 0f, moveVertical);
 
         if (localDirection.magnitude < 0.1f)
         {
@@ -131,8 +127,6 @@ public class CustomMovement : MonoBehaviour
         }
         else
         {
-            localDirection.Normalize();
-
             Transform cam = Camera.main.transform;
             Vector3 forward = cam.forward;
             Vector3 right = cam.right;
@@ -142,7 +136,7 @@ public class CustomMovement : MonoBehaviour
             forward.Normalize();
             right.Normalize();
 
-            moveDirection = localDirection.z * forward + localDirection.x * right;
+            moveDirection = (localDirection.z * forward + localDirection.x * right).normalized;
 
             if (!combatScript.IsAttacking && !usingGamepad)
             {
@@ -151,113 +145,78 @@ public class CustomMovement : MonoBehaviour
             }
         }
 
-        // 🎮 Stick droit = rotation
+        Vector3 aimDirection = Vector3.zero;
+
         if (usingGamepad)
         {
             float rightX = Input.GetAxis("RightStickHorizontal");
             float rightY = Input.GetAxis("RightStickVertical");
+            Vector3 rightInput = new Vector3(rightX, 0f, rightY);
 
-            Vector3 rightStickInput = new Vector3(rightX, 0f, rightY);
-            if (rightStickInput.magnitude > 0.1f)
+            if (rightInput.magnitude > 0.1f)
             {
                 Transform cam = Camera.main.transform;
                 Vector3 camForward = cam.forward;
                 Vector3 camRight = cam.right;
-
-                camForward.y = 0f;
-                camRight.y = 0f;
+                camForward.y = camRight.y = 0f;
                 camForward.Normalize();
                 camRight.Normalize();
 
-                Vector3 aimDirection = camForward * rightY + camRight * rightX;
-                Quaternion stickRotation = Quaternion.LookRotation(aimDirection);
-                transform.rotation = Quaternion.Slerp(transform.rotation, stickRotation, rotationSpeed * Time.deltaTime);
+                aimDirection = (rightY * camForward + rightX * camRight).normalized;
+                Quaternion stickRot = Quaternion.LookRotation(aimDirection);
+                transform.rotation = Quaternion.Slerp(transform.rotation, stickRot, rotationSpeed * Time.deltaTime);
             }
+        }
+
+        bool preventSprintByRotation = false;
+
+        if (usingGamepad && aimDirection != Vector3.zero && moveDirection != Vector3.zero)
+        {
+            float angle = Vector3.Angle(moveDirection, aimDirection);
+            preventSprintByRotation = angle > sprintAngleTolerance;
         }
 
         bool holdingMovement = moveDirection.magnitude > 0.1f;
         bool shiftHeld = Input.GetKey(KeyCode.LeftShift) || Input.GetButton("Sprint");
+        isSprinting = shiftHeld && holdingMovement && !preventSprintByRotation;
+
+        targetSpeedMultiplier = isSprinting ? sprintMultiplier :
+                                runDuration < sprintBoostDelay ? walkMultiplier : 1f;
 
         if (holdingMovement)
-        {
             runDuration += Time.deltaTime;
-        }
         else
-        {
             runDuration = 0f;
-        }
-
-        isSprinting = shiftHeld && holdingMovement;
-        isBoostingSprint = isSprinting;
-
-        if (isSprinting)
-        {
-            targetSpeedMultiplier = sprintMultiplier;
-        }
-        else if (runDuration < sprintBoostDelay)
-        {
-            targetSpeedMultiplier = walkMultiplier;
-        }
-        else
-        {
-            targetSpeedMultiplier = 1f;
-        }
 
         if (!wasHoldingMovement && holdingMovement)
         {
             animator.SetBool("MovementInputTapped", true);
             inputTapTimer = tapDuration;
         }
+
         wasHoldingMovement = holdingMovement;
 
         float forwardStrafe = 0f;
-        float targetSpeed = 0f;
         if (holdingMovement)
         {
-            if (isSprinting)
-            {
-                forwardStrafe = 4f;
-            }
-            else if (runDuration >= sprintBoostDelay)
-            {
-                forwardStrafe = 2.5f;
-            }
-            else
-            {
-                forwardStrafe = 1.4f;
-            }
-            targetSpeed = forwardStrafe;
+            forwardStrafe = isSprinting ? 4f : runDuration >= sprintBoostDelay ? 2.5f : 1.4f;
         }
 
         animator.SetBool("MovementInputHeld", holdingMovement);
         animator.SetBool("IsStopped", !holdingMovement);
-        animator.SetBool("IsGrounded", true);
-        animator.SetBool("IsJumping", false);
-        animator.SetBool("IsStarting", false);
-        animator.SetBool("MovementInputTapped", false);
-
-        float currentForward = animator.GetFloat("ForwardStrafe");
-        float currentMoveSpeed = animator.GetFloat("MoveSpeed");
-
-        float smoothing = holdingMovement ? 10f : 3f;
-
-        float smoothedForward = Mathf.Lerp(currentForward, forwardStrafe, Time.deltaTime * smoothing);
-        float smoothedSpeed = Mathf.Lerp(currentMoveSpeed, targetSpeed, Time.deltaTime * smoothing);
-
-        animator.SetFloat("ForwardStrafe", smoothedForward);
-        animator.SetFloat("MoveSpeed", smoothedSpeed);
-        animator.SetFloat("IsStrafing", 1f);
+        animator.SetFloat("MoveSpeed", Mathf.Lerp(animator.GetFloat("MoveSpeed"), forwardStrafe, Time.deltaTime * 10f));
+        animator.SetFloat("ForwardStrafe", Mathf.Lerp(animator.GetFloat("ForwardStrafe"), forwardStrafe, Time.deltaTime * 10f));
 
         Vector3 localMoveDir = transform.InverseTransformDirection(moveDirection);
-        Vector3 currentDir = new Vector3(
-            animator.GetFloat("StrafeDirectionX"),
-            0f,
-            animator.GetFloat("StrafeDirectionZ")
+        Vector3 smoothedDir = Vector3.Lerp(
+            new Vector3(animator.GetFloat("StrafeDirectionX"), 0f, animator.GetFloat("StrafeDirectionZ")),
+            new Vector3(localMoveDir.x, 0, localMoveDir.z),
+            Time.deltaTime * 10f
         );
-        Vector3 smoothedDir = Vector3.Lerp(currentDir, new Vector3(localMoveDir.x, 0, localMoveDir.z), Time.deltaTime * smoothing);
 
         animator.SetFloat("StrafeDirectionX", smoothedDir.x);
         animator.SetFloat("StrafeDirectionZ", smoothedDir.z);
+        animator.SetFloat("IsStrafing", 1f);
     }
 
     private IEnumerator PerformDash()
@@ -268,14 +227,12 @@ public class CustomMovement : MonoBehaviour
         animator.SetTrigger("Slide");
 
         Vector3 rawDir = moveDirection.magnitude > 0.1f ? moveDirection : transform.forward;
-        rawDir.y = 0f;
         currentDashDirection = rawDir.normalized;
 
         isDashing = true;
         rb.velocity = currentDashDirection * dashSpeed;
 
         yield return new WaitForSeconds(dashTime);
-
         rb.velocity = Vector3.zero;
 
         yield return new WaitForSeconds(dashRecoveryTime);
@@ -283,26 +240,5 @@ public class CustomMovement : MonoBehaviour
 
         yield return new WaitForSeconds(dashCooldown);
         dashOnCooldown = false;
-    }
-    public void ResetMovement()
-    {
-        moveDirection = Vector3.zero;
-        rb.velocity = Vector3.zero;
-
-        animator.SetFloat("ForwardStrafe", 0f);
-        animator.SetFloat("MoveSpeed", 0f);
-        animator.SetFloat("StrafeDirectionX", 0f);
-        animator.SetFloat("StrafeDirectionZ", 0f);
-        animator.SetBool("MovementInputHeld", false);
-        animator.SetBool("IsStopped", true);
-    }
-
-    private void OnDrawGizmos()
-    {
-        if (!isDashing) return;
-
-        Gizmos.color = Color.red;
-        Gizmos.DrawLine(transform.position, transform.position + currentDashDirection * 2f);
-        Gizmos.DrawSphere(transform.position + currentDashDirection * 2f, 0.1f);
     }
 }

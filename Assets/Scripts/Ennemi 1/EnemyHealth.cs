@@ -7,14 +7,21 @@ public class EnemyHealth : MonoBehaviour
     [SerializeField] private int maxHealth = 100;
     private int currentHealth;
 
-    [SerializeField] private Image healthBarFill; // optionnel, pour UI
+    [SerializeField] private Image healthBarFill;
 
     private bool isDead = false;
+
+    private MageEnemy mage;
+    private EnemyMovement standardAI;
 
     private void Start()
     {
         currentHealth = maxHealth;
         UpdateHealthBar();
+
+        // Caches optionnels
+        mage = GetComponent<MageEnemy>();
+        standardAI = GetComponentInChildren<EnemyMovement>();
     }
 
     public void TakeDamage(int amount)
@@ -25,12 +32,17 @@ public class EnemyHealth : MonoBehaviour
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
         UpdateHealthBar();
 
-        // Réagir au coup
-        EnemyMovement movement = GetComponentInChildren<EnemyMovement>();
-        if (movement != null && GameObject.FindWithTag("Player") != null)
+        // === Spécifique Mage ===
+        if (mage != null)
+        {
+            mage.ReceiveHit(); // Feedback mage
+        }
+
+        // === Ennemi standard ===
+        else if (standardAI != null && GameObject.FindWithTag("Player") != null)
         {
             Vector3 attackerPos = GameObject.FindWithTag("Player").transform.position;
-            movement.ReactToHit(attackerPos);
+            standardAI.ReactToHit(attackerPos);
         }
 
         if (currentHealth <= 0)
@@ -44,13 +56,22 @@ public class EnemyHealth : MonoBehaviour
         if (isDead) return;
         isDead = true;
 
-        EnemyMovement movement = GetComponentInChildren<EnemyMovement>();
-        if (movement != null)
+        // === Mage ===
+        if (mage != null)
         {
-            movement.Die();
+            Destroy(gameObject, 2f); // Mage auto-détruit, géré via ses anims
         }
 
-        StartCoroutine(DelayedCleanup());
+        // === Ennemi standard ===
+        else if (standardAI != null)
+        {
+            standardAI.Die();
+            StartCoroutine(DelayedCleanup());
+        }
+        else
+        {
+            Destroy(gameObject, 2f);
+        }
     }
 
     private void UpdateHealthBar()
