@@ -33,6 +33,11 @@ public class MageEnemy : MonoBehaviour
     [Header("Target")]
     [SerializeField] private Transform player;
 
+    [Header("Visual Feedback")]
+    [SerializeField] private SkinnedMeshRenderer meshRenderer;
+    [SerializeField] private Color flashColor = Color.white;
+    [SerializeField] private float flashDuration = 0.1f;
+
     private NavMeshAgent agent;
     private Animator animator;
     private MageState currentState = MageState.Idle;
@@ -131,7 +136,7 @@ public class MageEnemy : MonoBehaviour
             if (distance <= tooCloseDistance && Time.time - lastRetreatTime >= retreatCooldown)
             {
                 Debug.Log("Mage: Player too close, preparing retreat!");
-                stateTimer = 2f; // Wait before retreat
+                stateTimer = 0.5f; // Wait before retreat
                 currentState = MageState.PreparingRetreat;
             }
             else if (distance <= attackRange)
@@ -152,7 +157,6 @@ public class MageEnemy : MonoBehaviour
             }
         }
 
-        // Si en train de se faire frapper trop près
         if (wasRecentlyHit && distance <= tooCloseDistance)
         {
             Debug.Log("Mage: Paralyzed by player attacks!");
@@ -167,11 +171,22 @@ public class MageEnemy : MonoBehaviour
         if (stateTimer <= 0f)
         {
             Vector3 retreatDir = (transform.position - player.position).normalized;
-            agent.SetDestination(transform.position + retreatDir * retreatDistance);
-            stateTimer = retreatDuration;
-            lastRetreatTime = Time.time;
-            Debug.Log("Mage: Retreating!");
-            currentState = MageState.Retreating;
+            Vector3 targetPos = transform.position + retreatDir * retreatDistance;
+
+            NavMeshHit hit;
+            if (NavMesh.SamplePosition(targetPos, out hit, 2f, NavMesh.AllAreas))
+            {
+                agent.SetDestination(hit.position);
+                Debug.Log("Mage: Retreating to safe position.");
+                stateTimer = retreatDuration;
+                lastRetreatTime = Time.time;
+                currentState = MageState.Retreating;
+            }
+            else
+            {
+                Debug.LogWarning("Mage: Retreat path blocked, fallback to chase.");
+                currentState = MageState.Chasing;
+            }
         }
     }
 
@@ -182,7 +197,7 @@ public class MageEnemy : MonoBehaviour
         {
             agent.SetDestination(transform.position);
             Debug.Log("Mage: Stopped retreat, reassess situation.");
-            currentState = MageState.Attacking; // After retreat, back to fighting
+            currentState = MageState.Attacking;
         }
     }
 
@@ -215,6 +230,22 @@ public class MageEnemy : MonoBehaviour
     {
         wasRecentlyHit = true;
         lastHitTime = Time.time;
+
+        if (animator != null)
+            animator.SetTrigger("Hit");
+
+        if (meshRenderer != null)
+            StartCoroutine(FlashColor());
+    }
+
+    private IEnumerator FlashColor()
+    {
+        Color originalColor = meshRenderer.material.color;
+        meshRenderer.material.color = flashColor;
+
+        yield return new WaitForSeconds(flashDuration);
+
+        meshRenderer.material.color = originalColor;
     }
 
     private void FacePlayer()

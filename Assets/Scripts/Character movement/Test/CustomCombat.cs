@@ -35,6 +35,7 @@ public class CustomCombat : MonoBehaviour
     private Camera mainCamera;
 
     private Vector3 lastMouseDirection = Vector3.forward;
+    private bool usingGamepad = false;
 
     private static readonly int IsInCombat = Animator.StringToHash("IsInCombat");
 
@@ -52,6 +53,8 @@ public class CustomCombat : MonoBehaviour
 
     void Update()
     {
+        DetectInputMethod();
+
         float resetDelay = (comboStep == 0) ? comboResetTime : (comboStep == 2 ? comboEndDelay : comboResetTime);
 
         if (Time.time - lastAttackTime > resetDelay)
@@ -61,8 +64,29 @@ public class CustomCombat : MonoBehaviour
 
         if ((Input.GetMouseButtonDown(0) || Input.GetButtonDown("Fire1")) && !IsAttacking)
         {
-            RotateTowardMouseInstant();
+            if (!usingGamepad)
+            {
+                RotateTowardMouseInstant();
+            }
+            else
+            {
+                RotateTowardStick();
+            }
+
             StartLightAttack();
+        }
+    }
+
+    private void DetectInputMethod()
+    {
+        if (Input.GetAxis("Mouse X") != 0 || Input.GetAxis("Mouse Y") != 0)
+        {
+            usingGamepad = false;
+        }
+
+        if (Input.GetButtonDown("Fire1") || Mathf.Abs(Input.GetAxis("RightStickHorizontal")) > 0.1f || Mathf.Abs(Input.GetAxis("RightStickVertical")) > 0.1f)
+        {
+            usingGamepad = true;
         }
     }
 
@@ -85,6 +109,32 @@ public class CustomCombat : MonoBehaviour
         }
     }
 
+    private void RotateTowardStick()
+    {
+        float rightX = Input.GetAxis("RightStickHorizontal");
+        float rightY = Input.GetAxis("RightStickVertical");
+
+        Vector3 input = new Vector3(rightX, 0f, rightY);
+        if (input.magnitude > 0.1f)
+        {
+            Transform cam = Camera.main.transform;
+            Vector3 camForward = cam.forward;
+            Vector3 camRight = cam.right;
+
+            camForward.y = 0f;
+            camRight.y = 0f;
+            camForward.Normalize();
+            camRight.Normalize();
+
+            Vector3 aimDir = camForward * rightY + camRight * rightX;
+            lastMouseDirection = aimDir.normalized;
+        }
+        else
+        {
+            lastMouseDirection = transform.forward;
+        }
+    }
+
     public void StartLightAttack()
     {
         if (isAttacking) return;
@@ -100,10 +150,9 @@ public class CustomCombat : MonoBehaviour
     {
         isAttacking = true;
 
-        // Rotation physique avant d'attaquer
         Quaternion targetRotation = Quaternion.LookRotation(lastMouseDirection);
         rb.MoveRotation(targetRotation);
-        yield return new WaitForFixedUpdate(); // Laisse Unity appliquer la rotation
+        yield return new WaitForFixedUpdate();
 
         Vector3 dashDirection = transform.forward;
         Quaternion vfxRotation = Quaternion.LookRotation(dashDirection);
@@ -127,7 +176,6 @@ public class CustomCombat : MonoBehaviour
                     break;
             }
 
-            // Applique une rotation de l’épée à chaque attaque
             if (swordTransform != null)
             {
                 swordTransform.localRotation = Quaternion.Euler(90f, 0f, 0f);

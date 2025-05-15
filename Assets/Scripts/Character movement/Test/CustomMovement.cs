@@ -10,6 +10,9 @@ public class CustomMovement : MonoBehaviour
     [SerializeField] private float sprintMultiplier = 1.5f;
     [SerializeField] private float sprintBoostDelay = 1.5f;
 
+    [Header("Sprint Control")]
+    [SerializeField] private float sprintAngleTolerance = 35f;
+
     private bool isSprinting = false;
     private bool isBoostingSprint = false;
     private float runDuration = 0f;
@@ -151,7 +154,7 @@ public class CustomMovement : MonoBehaviour
             }
         }
 
-        // 🎮 Stick droit = rotation
+        Vector3 aimDirection = Vector3.zero;
         if (usingGamepad)
         {
             float rightX = Input.GetAxis("RightStickHorizontal");
@@ -169,7 +172,7 @@ public class CustomMovement : MonoBehaviour
                 camForward.Normalize();
                 camRight.Normalize();
 
-                Vector3 aimDirection = camForward * rightY + camRight * rightX;
+                aimDirection = camForward * rightY + camRight * rightX;
                 Quaternion stickRotation = Quaternion.LookRotation(aimDirection);
                 transform.rotation = Quaternion.Slerp(transform.rotation, stickRotation, rotationSpeed * Time.deltaTime);
             }
@@ -178,16 +181,13 @@ public class CustomMovement : MonoBehaviour
         bool holdingMovement = moveDirection.magnitude > 0.1f;
         bool shiftHeld = Input.GetKey(KeyCode.LeftShift) || Input.GetButton("Sprint");
 
-        if (holdingMovement)
+        bool preventSprintByRotation = false;
+        if (usingGamepad && aimDirection != Vector3.zero && moveDirection != Vector3.zero)
         {
-            runDuration += Time.deltaTime;
-        }
-        else
-        {
-            runDuration = 0f;
+            preventSprintByRotation = IsTurningAwayFromMoveDirection(moveDirection, aimDirection, sprintAngleTolerance);
         }
 
-        isSprinting = shiftHeld && holdingMovement;
+        isSprinting = shiftHeld && holdingMovement && !preventSprintByRotation;
         isBoostingSprint = isSprinting;
 
         if (isSprinting)
@@ -201,6 +201,15 @@ public class CustomMovement : MonoBehaviour
         else
         {
             targetSpeedMultiplier = 1f;
+        }
+
+        if (holdingMovement)
+        {
+            runDuration += Time.deltaTime;
+        }
+        else
+        {
+            runDuration = 0f;
         }
 
         if (!wasHoldingMovement && holdingMovement)
@@ -284,18 +293,6 @@ public class CustomMovement : MonoBehaviour
         yield return new WaitForSeconds(dashCooldown);
         dashOnCooldown = false;
     }
-    public void ResetMovement()
-    {
-        moveDirection = Vector3.zero;
-        rb.velocity = Vector3.zero;
-
-        animator.SetFloat("ForwardStrafe", 0f);
-        animator.SetFloat("MoveSpeed", 0f);
-        animator.SetFloat("StrafeDirectionX", 0f);
-        animator.SetFloat("StrafeDirectionZ", 0f);
-        animator.SetBool("MovementInputHeld", false);
-        animator.SetBool("IsStopped", true);
-    }
 
     private void OnDrawGizmos()
     {
@@ -304,5 +301,14 @@ public class CustomMovement : MonoBehaviour
         Gizmos.color = Color.red;
         Gizmos.DrawLine(transform.position, transform.position + currentDashDirection * 2f);
         Gizmos.DrawSphere(transform.position + currentDashDirection * 2f, 0.1f);
+    }
+
+    private bool IsTurningAwayFromMoveDirection(Vector3 moveDir, Vector3 aimDir, float angleThreshold)
+    {
+        if (moveDir.sqrMagnitude < 0.01f || aimDir.sqrMagnitude < 0.01f)
+            return false;
+
+        float angle = Vector3.Angle(moveDir.normalized, aimDir.normalized);
+        return angle > angleThreshold;
     }
 }
