@@ -29,4 +29,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/SceneMordred.unity
     guid: 93940a7b61636f7458a49420c8ca07e0
+  - enabled: 1
+    path: Assets/Scenes/Game/Tutoriel_Stable.unity
+    guid: 37d28712fb4340041ac82729b62b76a0
   m_configObjects: {}

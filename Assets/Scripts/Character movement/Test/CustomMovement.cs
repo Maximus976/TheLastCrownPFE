@@ -284,6 +284,18 @@ public class CustomMovement : MonoBehaviour
         yield return new WaitForSeconds(dashCooldown);
         dashOnCooldown = false;
     }
+    public void ResetMovement()
+    {
+        moveDirection = Vector3.zero;
+        rb.velocity = Vector3.zero;
+
+        animator.SetFloat("ForwardStrafe", 0f);
+        animator.SetFloat("MoveSpeed", 0f);
+        animator.SetFloat("StrafeDirectionX", 0f);
+        animator.SetFloat("StrafeDirectionZ", 0f);
+        animator.SetBool("MovementInputHeld", false);
+        animator.SetBool("IsStopped", true);
+    }
 
     private void OnDrawGizmos()
     {
