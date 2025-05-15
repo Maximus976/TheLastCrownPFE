@@ -1,30 +1,37 @@
+﻿using UnityEngine;
 using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+using UnityEngine.UI;
 
 public class EnemyHealth : MonoBehaviour
 {
-    public int maxHealth = 100;
+    [SerializeField] private int maxHealth = 100;
     private int currentHealth;
-    public GameObject damageSource;
 
-    void Start()
+    [SerializeField] private Image healthBarFill; // optionnel, pour UI
+
+    private bool isDead = false;
+
+    private void Start()
     {
         currentHealth = maxHealth;
+        UpdateHealthBar();
     }
 
-    void OnCollisionEnter(Collision collision)
+    public void TakeDamage(int amount)
     {
-        if(collision.gameObject == damageSource)
+        if (isDead) return;
+
+        currentHealth -= amount;
+        currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
+        UpdateHealthBar();
+
+        // Réagir au coup
+        EnemyMovement movement = GetComponentInChildren<EnemyMovement>();
+        if (movement != null && GameObject.FindWithTag("Player") != null)
         {
-            TakeDamage(40); // 40 points de dommages
+            Vector3 attackerPos = GameObject.FindWithTag("Player").transform.position;
+            movement.ReactToHit(attackerPos);
         }
-    }
-
-    public void TakeDamage(int damage)
-    {
-        currentHealth -= damage;
-        Debug.Log("Point de vie ennemi: " + currentHealth);
 
         if (currentHealth <= 0)
         {
@@ -32,9 +39,36 @@ public class EnemyHealth : MonoBehaviour
         }
     }
 
-    void Die()
+    private void Die()
     {
-        Debug.Log("Enemy defeated!");
-        Destroy(gameObject);
+        if (isDead) return;
+        isDead = true;
+
+        EnemyMovement movement = GetComponentInChildren<EnemyMovement>();
+        if (movement != null)
+        {
+            movement.Die();
+        }
+
+        StartCoroutine(DelayedCleanup());
+    }
+
+    private void UpdateHealthBar()
+    {
+        if (healthBarFill != null)
+        {
+            healthBarFill.fillAmount = (float)currentHealth / maxHealth;
+        }
+    }
+
+    private IEnumerator DelayedCleanup()
+    {
+        yield return new WaitForSeconds(1.5f);
+
+        Collider col = GetComponent<Collider>();
+        if (col) col.enabled = false;
+
+        this.enabled = false;
+        Destroy(gameObject, 2f);
     }
 }

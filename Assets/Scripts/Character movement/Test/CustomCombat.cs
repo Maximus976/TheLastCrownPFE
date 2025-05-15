@@ -131,7 +131,7 @@ public class CustomCombat : MonoBehaviour
             if (swordTransform != null)
             {
                 swordTransform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-                StartCoroutine(ResetSwordRotationAfterDelay(0.1f));
+                StartCoroutine(ResetSwordRotationAfterDelay(0.5f));
             }
         }
 
@@ -170,12 +170,12 @@ public class CustomCombat : MonoBehaviour
 
     private void CheckForEnemiesHit()
     {
-        Vector3 center = transform.position + transform.forward * 1f;
+        Vector3 center = transform.position + transform.forward * 2f;
         Collider[] hits = Physics.OverlapSphere(center, hitRange, enemyLayer);
 
         foreach (Collider hit in hits)
         {
-            Health enemyHealth = hit.GetComponent<Health>();
+            EnemyHealth enemyHealth = hit.GetComponent<EnemyHealth>();
             if (enemyHealth != null)
             {
                 enemyHealth.TakeDamage(damageAmount);
@@ -193,7 +193,7 @@ public class CustomCombat : MonoBehaviour
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
-        Vector3 center = transform.position + transform.forward * 1f;
+        Vector3 center = transform.position + transform.forward * 2f;
         Gizmos.DrawWireSphere(center, hitRange);
     }
 }

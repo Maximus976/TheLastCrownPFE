@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -24,7 +23,17 @@ public class EnemyMovement : MonoBehaviour
     [Header("Attack Settings")]
     [SerializeField] private int damage = 10;
     [SerializeField] private float attackCooldown = 1.5f;
-    [SerializeField] private float attackDelay = 0.5f; // décalage avant le hit
+    [SerializeField] private float attackDelay = 0.5f;
+
+    [Header("Hit Reaction")]
+    [SerializeField] private float hitStunDuration = 0.2f;
+    [SerializeField] private float knockbackForce = 2f;
+    [SerializeField] private float knockbackTime = 0.15f;
+
+    [Header("Feedback")]
+    [SerializeField] private Renderer[] renderersToFlash;
+    [SerializeField] private Color flashColor = Color.white;
+    [SerializeField] private float flashDuration = 0.1f;
 
     private NavMeshAgent agent;
     private Animator animator;
@@ -32,9 +41,12 @@ public class EnemyMovement : MonoBehaviour
 
     private float patrolCooldown;
     private bool isWaiting = false;
-
     private bool isAttacking = false;
     private float attackTimer = 0f;
+    private bool isDead = false;
+    private bool isStunned = false;
+
+    private Coroutine stunCoroutine;
 
     void Start()
     {
@@ -45,12 +57,15 @@ public class EnemyMovement : MonoBehaviour
         agent.autoBraking = false;
         agent.acceleration = 100f;
         agent.angularSpeed = 999f;
+
+        animator.SetInteger("HitType", 0); // Init safe
     }
 
     void Update()
     {
-        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+        if (isDead || isStunned) return;
 
+        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
         attackTimer -= Time.deltaTime;
 
         if (distanceToPlayer <= detectionRange)
@@ -58,7 +73,7 @@ public class EnemyMovement : MonoBehaviour
             if (distanceToPlayer > stopDistance)
             {
                 isAttacking = false;
-                agent.isStopped = false;
+                if (agent.isOnNavMesh) agent.isStopped = false;
                 ChasePlayer();
             }
             else if (attackTimer <= 0f && !isAttacking)
@@ -77,26 +92,20 @@ public class EnemyMovement : MonoBehaviour
     void StartAttack()
     {
         isAttacking = true;
-        agent.isStopped = true;
+        if (agent.isOnNavMesh) agent.isStopped = true;
         agent.velocity = Vector3.zero;
 
-        // rotation vers le joueur
         Vector3 dir = (player.position - transform.position).normalized;
         dir.y = 0;
         if (dir != Vector3.zero) transform.forward = dir;
 
         animator.SetTrigger("Attack");
-
-        // décalage des dégâts pour que ça colle à l'animation
         Invoke(nameof(DealDamage), attackDelay);
-
-        // cooldown général
         attackTimer = attackCooldown;
     }
 
     void DealDamage()
     {
-        // sécurité : vérifier que le joueur est toujours en portée
         if (Vector3.Distance(transform.position, player.position) <= stopDistance + 0.5f)
         {
             Health targetHealth = player.GetComponent<Health>();
@@ -107,18 +116,21 @@ public class EnemyMovement : MonoBehaviour
         }
 
         isAttacking = false;
-        agent.isStopped = false;
+        if (agent.isOnNavMesh) agent.isStopped = false;
     }
 
     private void ChasePlayer()
     {
-        agent.speed = chaseSpeed;
-        agent.SetDestination(player.position);
+        if (agent.isOnNavMesh)
+        {
+            agent.speed = chaseSpeed;
+            agent.SetDestination(player.position);
+        }
     }
 
     private void Patrol()
     {
-        if (isWaiting) return;
+        if (isWaiting || !agent.isOnNavMesh) return;
 
         agent.speed = patrolSpeed;
 
@@ -139,7 +151,7 @@ public class EnemyMovement : MonoBehaviour
     private IEnumerator PauseBeforeNextPatrol()
     {
         isWaiting = true;
-        agent.isStopped = true;
+        if (agent.isOnNavMesh) agent.isStopped = true;
 
         yield return new WaitForSeconds(idlePauseTime);
 
@@ -148,12 +160,132 @@ public class EnemyMovement : MonoBehaviour
 
         if (NavMesh.SamplePosition(randomDirection, out NavMeshHit hit, patrolRadius, NavMesh.AllAreas))
         {
-            agent.SetDestination(hit.position);
+            if (agent.isOnNavMesh)
+                agent.SetDestination(hit.position);
         }
 
-        agent.isStopped = false;
+        if (agent.isOnNavMesh) agent.isStopped = false;
         patrolCooldown = patrolDelay;
         isWaiting = false;
+    }
+
+    public void ReactToHit(Vector3 attackerPosition)
+    {
+        if (isDead) return;
+
+        isStunned = true;
+
+        FlashRed();
+
+        int hitType = Random.Range(1, 3); // 1 = static, 2 = knockback
+        animator.SetInteger("HitType", hitType);
+        animator.Update(0); // force l’Animator à lire le paramètre
+        animator.SetInteger("HitType", 0); // reset pour permettre réenclenchement
+
+        // Stop précédent stun s’il est encore actif
+        if (stunCoroutine != null)
+            StopCoroutine(stunCoroutine);
+
+        stunCoroutine = StartCoroutine(HitReactionRoutine(hitType, attackerPosition));
+    }
+
+    private IEnumerator HitReactionRoutine(int hitType, Vector3 attackerPosition)
+    {
+        if (agent.isOnNavMesh) agent.isStopped = true;
+
+        if (hitType == 2)
+        {
+            Vector3 dir = (transform.position - attackerPosition).normalized;
+            dir.y = 0;
+            float timer = 0f;
+            while (timer < knockbackTime)
+            {
+                agent.Move(dir * knockbackForce * Time.deltaTime);
+                timer += Time.deltaTime;
+                yield return null;
+            }
+        }
+        else
+        {
+            yield return new WaitForSeconds(knockbackTime);
+        }
+
+        yield return new WaitForSeconds(hitStunDuration);
+
+        if (agent.isOnNavMesh) agent.isStopped = false;
+        isStunned = false;
+        stunCoroutine = null;
+    }
+
+    private void FlashRed()
+    {
+        foreach (Renderer rend in renderersToFlash)
+        {
+            StartCoroutine(FlashRoutine(rend));
+        }
+    }
+
+    private IEnumerator FlashRoutine(Renderer rend)
+    {
+        if (rend == null) yield break;
+
+        Material mat = rend.material;
+
+        bool hasBaseColor = mat.HasProperty("_BaseColor");
+        bool hasEmission = mat.HasProperty("_EmissionColor");
+
+        Color originalColor = hasBaseColor ? mat.GetColor("_BaseColor") : Color.white;
+        Color originalEmission = hasEmission ? mat.GetColor("_EmissionColor") : Color.black;
+
+        if (hasBaseColor)
+            mat.SetColor("_BaseColor", flashColor);
+
+        if (hasEmission)
+        {
+            mat.EnableKeyword("_EMISSION");
+            mat.SetColor("_EmissionColor", flashColor * 5f);
+        }
+
+        yield return new WaitForSeconds(flashDuration);
+
+        if (hasBaseColor)
+            mat.SetColor("_BaseColor", originalColor);
+
+        if (hasEmission)
+        {
+            mat.SetColor("_EmissionColor", originalEmission);
+            if (originalEmission == Color.black)
+                mat.DisableKeyword("_EMISSION");
+        }
+    }
+
+    public void Die()
+    {
+        if (isDead) return;
+        isDead = true;
+
+        if (agent.isOnNavMesh)
+        {
+            agent.ResetPath();
+            agent.isStopped = true;
+            agent.updatePosition = false;
+            agent.updateRotation = false;
+        }
+
+        Rigidbody rb = GetComponent<Rigidbody>();
+        if (rb)
+        {
+            rb.isKinematic = true;
+            rb.velocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+
+        int randomDeath = Random.Range(0, 4);
+        animator.SetInteger("DeathIndex", randomDeath);
+        animator.SetTrigger("Die");
+
+        Collider col = GetComponent<Collider>();
+        if (col) col.enabled = false;
     }
 
     private void OnDrawGizmosSelected()

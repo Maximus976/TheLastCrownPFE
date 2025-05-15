@@ -34,6 +34,10 @@ public class CustomMovement : MonoBehaviour
     public Animator animator;
     private CustomCombat combatScript;
 
+    private bool usingGamepad = false;
+    private float gamepadTimeout = 2f;
+    private float gamepadTimer = 0f;
+
     void Start()
     {
         rb = GetComponent<Rigidbody>();
@@ -55,6 +59,7 @@ public class CustomMovement : MonoBehaviour
     {
         if (combatScript != null && combatScript.IsAttacking) return;
 
+        DetectInputDevice();
         HandleInput();
 
         if (inputTapTimer > 0f)
@@ -86,6 +91,33 @@ public class CustomMovement : MonoBehaviour
         }
     }
 
+    private void DetectInputDevice()
+    {
+        if (Input.GetAxis("Mouse X") != 0 || Input.GetAxis("Mouse Y") != 0)
+        {
+            usingGamepad = false;
+            gamepadTimer = 0f;
+        }
+
+        float rx = Input.GetAxis("RightStickHorizontal");
+        float ry = Input.GetAxis("RightStickVertical");
+
+        if (Mathf.Abs(rx) > 0.1f || Mathf.Abs(ry) > 0.1f)
+        {
+            usingGamepad = true;
+            gamepadTimer = gamepadTimeout;
+        }
+
+        if (usingGamepad)
+        {
+            gamepadTimer -= Time.deltaTime;
+            if (gamepadTimer <= 0f)
+            {
+                usingGamepad = false;
+            }
+        }
+    }
+
     private void HandleMovement()
     {
         float moveHorizontal = Input.GetAxis("Horizontal");
@@ -112,10 +144,34 @@ public class CustomMovement : MonoBehaviour
 
             moveDirection = localDirection.z * forward + localDirection.x * right;
 
-            Quaternion targetRot = Quaternion.LookRotation(moveDirection);
-            if (!combatScript.IsAttacking)
+            if (!combatScript.IsAttacking && !usingGamepad)
             {
+                Quaternion targetRot = Quaternion.LookRotation(moveDirection);
                 transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, rotationSpeed * Time.deltaTime);
+            }
+        }
+
+        // 🎮 Stick droit = rotation
+        if (usingGamepad)
+        {
+            float rightX = Input.GetAxis("RightStickHorizontal");
+            float rightY = Input.GetAxis("RightStickVertical");
+
+            Vector3 rightStickInput = new Vector3(rightX, 0f, rightY);
+            if (rightStickInput.magnitude > 0.1f)
+            {
+                Transform cam = Camera.main.transform;
+                Vector3 camForward = cam.forward;
+                Vector3 camRight = cam.right;
+
+                camForward.y = 0f;
+                camRight.y = 0f;
+                camForward.Normalize();
+                camRight.Normalize();
+
+                Vector3 aimDirection = camForward * rightY + camRight * rightX;
+                Quaternion stickRotation = Quaternion.LookRotation(aimDirection);
+                transform.rotation = Quaternion.Slerp(transform.rotation, stickRotation, rotationSpeed * Time.deltaTime);
             }
         }
 
