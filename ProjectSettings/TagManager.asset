@@ -9,6 +9,7 @@ TagManager:
   - Wall
   - Levier
   - MurDestructible
+  - ZoneCameraSwitch1
   layers:
   - Default
   - TransparentFX

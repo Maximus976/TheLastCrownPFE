@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using UnityEngine.UI;
+using UnityEngine.AI;
 
 public class EnemyHealth : MonoBehaviour
 {
@@ -10,18 +11,20 @@ public class EnemyHealth : MonoBehaviour
     [SerializeField] private Image healthBarFill;
 
     private bool isDead = false;
+    public bool IsDead => isDead;
 
     private MageEnemy mage;
     private EnemyMovement standardAI;
+    private Animator animator;
 
     private void Start()
     {
         currentHealth = maxHealth;
         UpdateHealthBar();
 
-        // Caches optionnels
         mage = GetComponent<MageEnemy>();
         standardAI = GetComponentInChildren<EnemyMovement>();
+        animator = GetComponent<Animator>();
     }
 
     public void TakeDamage(int amount)
@@ -32,13 +35,10 @@ public class EnemyHealth : MonoBehaviour
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
         UpdateHealthBar();
 
-        // === Spécifique Mage ===
         if (mage != null)
         {
-            mage.ReceiveHit(); // Feedback mage
+            mage.ReceiveHit();
         }
-
-        // === Ennemi standard ===
         else if (standardAI != null && GameObject.FindWithTag("Player") != null)
         {
             Vector3 attackerPos = GameObject.FindWithTag("Player").transform.position;
@@ -56,22 +56,33 @@ public class EnemyHealth : MonoBehaviour
         if (isDead) return;
         isDead = true;
 
-        // === Mage ===
-        if (mage != null)
+        if (animator != null)
         {
-            Destroy(gameObject, 2f); // Mage auto-détruit, géré via ses anims
+            animator.ResetTrigger("Die");
+            animator.SetTrigger("Die");
         }
 
-        // === Ennemi standard ===
-        else if (standardAI != null)
+        NavMeshAgent agent = GetComponent<NavMeshAgent>();
+        if (agent != null)
         {
-            standardAI.Die();
-            StartCoroutine(DelayedCleanup());
+            agent.ResetPath();
+            agent.isStopped = true;
+            agent.updatePosition = false;
+            agent.updateRotation = false;
         }
-        else
+
+        Rigidbody rb = GetComponent<Rigidbody>();
+        if (rb)
         {
-            Destroy(gameObject, 2f);
+            rb.isKinematic = true;
+            rb.velocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
         }
+
+        Collider col = GetComponent<Collider>();
+        if (col != null) col.enabled = false;
+
+        StartCoroutine(DelayedCleanup());
     }
 
     private void UpdateHealthBar()
@@ -84,12 +95,7 @@ public class EnemyHealth : MonoBehaviour
 
     private IEnumerator DelayedCleanup()
     {
-        yield return new WaitForSeconds(1.5f);
-
-        Collider col = GetComponent<Collider>();
-        if (col) col.enabled = false;
-
-        this.enabled = false;
-        Destroy(gameObject, 2f);
+        yield return new WaitForSeconds(2f);
+        Destroy(gameObject);
     }
 }

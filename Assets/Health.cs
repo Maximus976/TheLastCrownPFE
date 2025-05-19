@@ -33,6 +33,8 @@ public class Health : MonoBehaviour
         {
             Die();
         }
+        if (CinemachineShake.instance != null)
+            CinemachineShake.instance.Shake();
     }
 
     public void RestoreHealth(int amount)
