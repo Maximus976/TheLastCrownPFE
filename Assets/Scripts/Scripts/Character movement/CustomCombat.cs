@@ -139,8 +139,8 @@ public class CustomCombat : MonoBehaviour
         }
 
         CheckForEnemiesHit();
-        yield return new WaitForSeconds(attackAnimDuration);
 
+        yield return new WaitForSeconds(attackAnimDuration);
         isAttacking = false;
         animator.SetBool("IsInCombat", false);
     }
@@ -154,11 +154,15 @@ public class CustomCombat : MonoBehaviour
 
     private void CheckForEnemiesHit()
     {
+        Debug.Log("Checking for enemies to hit...");
+
         Vector3 center = transform.position + transform.forward * 2f;
         Collider[] hits = Physics.OverlapSphere(center, hitRange, enemyLayer);
 
         foreach (Collider hit in hits)
         {
+            Debug.Log("Hit detected: " + hit.name);
+
             var enemyHealth = hit.GetComponentInParent<EnemyHealth>();
             if (enemyHealth != null)
             {
@@ -172,5 +176,12 @@ public class CustomCombat : MonoBehaviour
                 destructible.TakeDamage(damageAmount);
             }
         }
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.red;
+        Vector3 center = transform.position + transform.forward * 2f;
+        Gizmos.DrawWireSphere(center, hitRange);
     }
 }

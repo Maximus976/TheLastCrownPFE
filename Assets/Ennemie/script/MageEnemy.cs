@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -24,7 +23,7 @@ public class MageEnemy : MonoBehaviour
     [SerializeField] private float attackCooldown = 2f;
     [SerializeField] private float retreatCooldown = 5f;
     [SerializeField] private float retreatDistance = 5f;
-    [SerializeField] private float retreatDuration = 1f;
+    [SerializeField] private float retreatDuration = 2f;
     [SerializeField] private float paralyzeDuration = 3f;
     [SerializeField] private GameObject projectilePrefab;
     [SerializeField] private Transform firePoint;
@@ -38,21 +37,28 @@ public class MageEnemy : MonoBehaviour
     [SerializeField] private Color flashColor = Color.white;
     [SerializeField] private float flashDuration = 0.1f;
 
+    [Header("Hit Reaction")]
+    [SerializeField] private float hitStunDuration = 0.2f;
+    [SerializeField] private float knockbackForce = 2f;
+    [SerializeField] private float knockbackTime = 0.15f;
+
     private NavMeshAgent agent;
     private Animator animator;
+    private EnemyHealth health;
     private MageState currentState = MageState.Idle;
     private float stateTimer;
     private float lastAttackTime;
     private float lastRetreatTime;
-    private float lastHitTime;
     private bool wasRecentlyHit = false;
-    private Vector3 initialPosition;
+    private bool playedChargeAnim = false;
+    private bool isStunned = false;
+    private Coroutine stunCoroutine;
 
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
-        initialPosition = transform.position;
+        health = GetComponent<EnemyHealth>();
 
         if (player == null && GameObject.FindGameObjectWithTag("Player") != null)
             player = GameObject.FindGameObjectWithTag("Player").transform;
@@ -60,9 +66,21 @@ public class MageEnemy : MonoBehaviour
 
     void Update()
     {
-        if (player == null) return;
+        if (player == null || isStunned || (health != null && health.IsDead)) return;
+
+        if (animator != null && agent != null)
+        {
+            animator.SetFloat("Speed", agent.velocity.magnitude, 0.1f, Time.deltaTime);
+        }
 
         float distance = Vector3.Distance(transform.position, player.position);
+
+        if (currentState == MageState.PreparingAttack && distance > attackRange)
+        {
+            currentState = MageState.Chasing;
+            playedChargeAnim = false;
+            return;
+        }
 
         switch (currentState)
         {
@@ -104,6 +122,7 @@ public class MageEnemy : MonoBehaviour
         {
             agent.SetDestination(transform.position);
             stateTimer = attackDelay;
+            playedChargeAnim = false;
             currentState = MageState.PreparingAttack;
         }
         else
@@ -115,8 +134,21 @@ public class MageEnemy : MonoBehaviour
 
     private void HandlePreparingAttack(float distance)
     {
-        stateTimer -= Time.deltaTime;
         FacePlayer();
+        ForceStopMovement();
+
+        if (!playedChargeAnim && animator != null)
+        {
+            animator.SetInteger("HitTypeMage", 1);
+            animator.Update(0);
+            animator.SetInteger("HitTypeMage", 0);
+            playedChargeAnim = true;
+        }
+
+        stateTimer -= Time.deltaTime;
+
+        if (wasRecentlyHit) return;
+
         if (stateTimer <= 0f)
         {
             Attack();
@@ -127,17 +159,21 @@ public class MageEnemy : MonoBehaviour
     private void HandleAttacking(float distance)
     {
         FacePlayer();
+        ForceStopMovement();
+
+        if (distance <= tooCloseDistance && Time.time - lastRetreatTime >= retreatCooldown)
+        {
+            stateTimer = 0.5f;
+            currentState = MageState.PreparingRetreat;
+            return;
+        }
 
         if (Time.time - lastAttackTime >= attackCooldown)
         {
-            if (distance <= tooCloseDistance && Time.time - lastRetreatTime >= retreatCooldown)
-            {
-                stateTimer = 0.5f;
-                currentState = MageState.PreparingRetreat;
-            }
-            else if (distance <= attackRange)
+            if (distance <= attackRange)
             {
                 stateTimer = attackDelay;
+                playedChargeAnim = false;
                 currentState = MageState.PreparingAttack;
             }
             else
@@ -161,8 +197,7 @@ public class MageEnemy : MonoBehaviour
             Vector3 retreatDir = (transform.position - player.position).normalized;
             Vector3 targetPos = transform.position + retreatDir * retreatDistance;
 
-            NavMeshHit hit;
-            if (NavMesh.SamplePosition(targetPos, out hit, 2f, NavMesh.AllAreas))
+            if (NavMesh.SamplePosition(targetPos, out NavMeshHit hit, 2f, NavMesh.AllAreas))
             {
                 agent.SetDestination(hit.position);
                 stateTimer = retreatDuration;
@@ -188,6 +223,8 @@ public class MageEnemy : MonoBehaviour
 
     private void HandleParalyzed()
     {
+        ForceStopMovement();
+
         stateTimer -= Time.deltaTime;
         if (stateTimer <= 0f)
         {
@@ -200,61 +237,137 @@ public class MageEnemy : MonoBehaviour
     {
         if (projectilePrefab == null || firePoint == null) return;
 
-        GameObject projectile = Instantiate(projectilePrefab, firePoint.position, Quaternion.identity);
         Vector3 dir = (player.position + Vector3.up) - firePoint.position;
+        Quaternion lookRotation = Quaternion.LookRotation(dir);
+        Quaternion correction = Quaternion.Euler(0, -90, 0);
+        Quaternion finalRotation = lookRotation * correction;
+
+        GameObject projectile = Instantiate(projectilePrefab, firePoint.position, finalRotation);
         projectile.GetComponent<Rigidbody>().velocity = dir.normalized * projectileSpeed;
 
         lastAttackTime = Time.time;
 
         if (animator != null)
-            animator.SetTrigger("Attack");
+        {
+            animator.SetInteger("HitTypeMage", 2);
+            animator.Update(0);
+            animator.SetInteger("HitTypeMage", 0);
+        }
     }
 
     public void ReceiveHit()
     {
-        wasRecentlyHit = true;
-        lastHitTime = Time.time;
+        if (isStunned || (health != null && health.IsDead)) return;
 
-        Debug.Log("MageEnemy: ReceiveHit triggered.");
+        wasRecentlyHit = true;
+        currentState = MageState.Attacking;
+        lastAttackTime = Time.time; // impose le cooldown
+
+        ForceStopMovement();
 
         if (animator != null)
         {
-            Debug.Log("MageEnemy: Triggering GetHit animation.");
-            animator.SetTrigger("GetHit"); 
+            animator.SetFloat("Speed", 0f);
+            animator.SetInteger("HitTypeMage", 0);
         }
-        else
+
+        int hitType = Random.Range(1, 3);
+        if (animator != null)
         {
-            Debug.LogWarning("MageEnemy: Animator missing!");
+            animator.SetInteger("HitType", hitType);
+            animator.Update(0);
+            animator.SetInteger("HitType", 0);
         }
+
+        if (stunCoroutine != null)
+            StopCoroutine(stunCoroutine);
+
+        stunCoroutine = StartCoroutine(HitReactionRoutine(hitType));
 
         if (meshRenderer != null)
-        {
             StartCoroutine(FlashColor());
+    }
+
+    private IEnumerator HitReactionRoutine(int hitType)
+    {
+        isStunned = true;
+        if (agent.isOnNavMesh) agent.isStopped = true;
+
+        ForceStopMovement();
+
+        if (hitType == 2)
+        {
+            Vector3 dir = (transform.position - player.position).normalized;
+            dir.y = 0;
+            float timer = 0f;
+            while (timer < knockbackTime)
+            {
+                agent.Move(dir * knockbackForce * Time.deltaTime);
+                timer += Time.deltaTime;
+                yield return null;
+            }
         }
         else
         {
-            Debug.LogWarning("MageEnemy: MeshRenderer not assigned.");
+            yield return new WaitForSeconds(knockbackTime);
         }
-    }
 
+        yield return new WaitForSeconds(hitStunDuration);
+
+        if (agent.isOnNavMesh) agent.isStopped = false;
+        isStunned = false;
+        wasRecentlyHit = false;
+        stunCoroutine = null;
+    }
 
     private IEnumerator FlashColor()
     {
+        if (meshRenderer == null) yield break;
+
         Material mat = meshRenderer.material;
 
-        // On vérifie si le shader a "_BaseColor" (cas URP)
-        if (!mat.HasProperty("_BaseColor"))
-        {
-            Debug.LogWarning("Material does not have _BaseColor property, flash skipped.");
-            yield break;
-        }
+        bool hasBaseColor = mat.HasProperty("_BaseColor");
+        bool hasEmission = mat.HasProperty("_EmissionColor");
 
-        Color originalColor = mat.GetColor("_BaseColor");
-        mat.SetColor("_BaseColor", flashColor);
+        Color originalColor = hasBaseColor ? mat.GetColor("_BaseColor") : Color.white;
+        Color originalEmission = hasEmission ? mat.GetColor("_EmissionColor") : Color.black;
+
+        if (hasBaseColor)
+            mat.SetColor("_BaseColor", flashColor);
+
+        if (hasEmission)
+        {
+            mat.EnableKeyword("_EMISSION");
+            mat.SetColor("_EmissionColor", flashColor * 5f);
+        }
 
         yield return new WaitForSeconds(flashDuration);
 
-        mat.SetColor("_BaseColor", originalColor);
+        if (hasBaseColor)
+            mat.SetColor("_BaseColor", originalColor);
+
+        if (hasEmission)
+        {
+            mat.SetColor("_EmissionColor", originalEmission);
+            if (originalEmission == Color.black)
+                mat.DisableKeyword("_EMISSION");
+        }
+    }
+
+    private void CancelCurrentBehavior()
+    {
+        agent.ResetPath();
+        stateTimer = 0f;
+        playedChargeAnim = false;
+        currentState = MageState.Idle;
+
+        if (animator != null)
+        {
+            animator.SetInteger("HitTypeMage", 0);
+            animator.SetFloat("Speed", 0f);
+        }
+
+        ForceStopMovement();
     }
 
     private void FacePlayer()
@@ -265,6 +378,14 @@ public class MageEnemy : MonoBehaviour
         {
             transform.rotation = Quaternion.LookRotation(direction);
         }
+    }
+
+    private void ForceStopMovement()
+    {
+        if (agent == null) return;
+
+        agent.SetDestination(transform.position);
+        agent.velocity = Vector3.zero;
     }
 
     private void OnDrawGizmosSelected()
