@@ -32,4 +32,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Game/Tutoriel_Stable.unity
     guid: 37d28712fb4340041ac82729b62b76a0
+  - enabled: 1
+    path: Assets/Scenes/Game/LorisTestMaxJTM.unity
+    guid: 51a1c8dbb270b62408c9b48421ff7774
   m_configObjects: {}
