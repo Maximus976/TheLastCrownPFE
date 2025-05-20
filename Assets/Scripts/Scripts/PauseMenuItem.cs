@@ -7,9 +7,9 @@ using UnityEngine.UI;
 public class PauseMenuItem : MonoBehaviour
 {
     [Header("Références")]
-    public TMP_Text text;           // Texte TMP du bouton
-    public GameObject leafLeft;     // Décoration gauche
-    public GameObject leafRight;    // Décoration droite
+    public TMP_Text text;
+    public GameObject leafLeft;
+    public GameObject leafRight;
 
     [Header("Couleurs")]
     public Color selectedColor = Color.yellow;
@@ -26,4 +26,4 @@ public class PauseMenuItem : MonoBehaviour
         if (leafRight != null)
             leafRight.SetActive(isSelected);
     }
-}
+}   
