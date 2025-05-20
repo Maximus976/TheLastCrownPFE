@@ -4,44 +4,28 @@ using UnityEngine;
 
 public class LevierPillier : MonoBehaviour
 {
-    public PillierAnim puzzleManager;  // Référence au gestionnaire de piliers
-    public int[] affectedPillars;      // Indices des piliers affectés par cette dalle
+    public pilliiermanager puzzleManager;  // Référence au gestionnaire
+    public int[] affectedPillarsIndices; // Indices des piliers que cette dalle contrôle
 
-    private bool canActivate = false;   // Si le joueur peut interagir avec la dalle
+    private bool playerOnDalle = false;
 
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
-        {
-            canActivate = true;
-        }
+            playerOnDalle = true;
     }
 
     private void OnTriggerExit(Collider other)
     {
         if (other.CompareTag("Player"))
-        {
-            canActivate = false;
-        }
+            playerOnDalle = false;
     }
 
     private void OnTriggerStay(Collider other)
     {
-        if (canActivate && other.CompareTag("Player") && !puzzleManager.isPuzzleSolved)  // On ne permet pas d'activer les dalles si le puzzle est résolu
+        if (playerOnDalle && other.CompareTag("Player") && !puzzleManager.IsPuzzleSolved)
         {
-            ActivateTile();  // Activer la dalle lorsque le joueur est dessus
+            puzzleManager.TogglePillars(affectedPillarsIndices);
         }
-    }
-
-    // Activation de la dalle, qui va affecter les piliers
-    private void ActivateTile()
-    {
-        if (puzzleManager == null || puzzleManager.IsAnyPillarMoving())  // Vérifie si des piliers sont en mouvement
-        {
-            return;  // Ne pas activer si les piliers sont en mouvement
-        }
-
-        // Si tout est bon, on active la dalle
-        puzzleManager.TogglePillars(affectedPillars);  // Affecte les piliers spécifiés
     }
 }
