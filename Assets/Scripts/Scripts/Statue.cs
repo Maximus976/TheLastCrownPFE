@@ -12,6 +12,8 @@ public class Statue : MonoBehaviour
     public float holdDuration = 2f;
     public GameObject grille;
 
+    public List<Transform> dropPoints; // Liste de positions fixes
+
     private bool playerInZone = false;
     private bool eventTriggered = false;
     private float holdTimer = 0f;
@@ -37,17 +39,14 @@ public class Statue : MonoBehaviour
 
     void Update()
     {
-        // Si le joueur est dans la zone, n’a pas déjà déposé, et tous les objets sont collectés
         if (playerInZone && !eventTriggered && ObjectCollectable.itemsCollected >= ObjectCollectable.totalItems)
         {
-            // Si le joueur appuie sur le bouton, lancer le dépôt
             if (Input.GetKeyDown(KeyCode.JoystickButton2) && !panelActive)
             {
                 ShowNarration();
                 isDepositing = true;
             }
 
-            // Si on est en train de déposer (bouton appuyé en continu)
             if (isDepositing && panelActive)
             {
                 if (Input.GetKey(KeyCode.JoystickButton2))
@@ -62,7 +61,6 @@ public class Statue : MonoBehaviour
                 }
                 else
                 {
-                    // Si on relâche trop tôt
                     holdTimer = 0f;
                     holdCircle.fillAmount = 0f;
                 }
@@ -85,6 +83,29 @@ public class Statue : MonoBehaviour
         Time.timeScale = 1f;
         narrationPanel.SetActive(false);
 
+        // Redéposer les objets à leurs points définis
+        for (int i = 0; i < ObjectCollectable.collectedObjects.Count; i++)
+        {
+            GameObject obj = ObjectCollectable.collectedObjects[i];
+            if (obj != null && i < dropPoints.Count)
+            {
+                obj.transform.position = dropPoints[i].position;
+                obj.transform.rotation = dropPoints[i].rotation;
+                obj.SetActive(true);
+
+                // Désactive le collider
+                Collider col = obj.GetComponent<Collider>();
+                if (col) col.enabled = false;
+
+                // Désactive le script de collecte
+                ObjectCollectable script = obj.GetComponent<ObjectCollectable>();
+                if (script) Destroy(script);
+
+                // Désactive l'oscillation
+                OcciliationObjet floatScript = obj.GetComponent<OcciliationObjet>();
+                if (floatScript) floatScript.DisableFloating();
+            }
+        }
         if (grille != null)
         {
             Grille grilleScript = grille.GetComponent<Grille>();

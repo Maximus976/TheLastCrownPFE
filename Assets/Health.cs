@@ -7,8 +7,11 @@ public class Health : MonoBehaviour
 {
     [SerializeField] private int maxHealth = 100;
     private int currentHealth;
+    private bool isDead = false;
 
-    [SerializeField] private Image healthBarFill;
+    [Header("UI")]
+    [SerializeField] private Image healthBarFill;  // Barre de vie à mettre à jour
+    [SerializeField] private MenuMort menuMort;     // Script du menu de mort
 
     private void Start()
     {
@@ -18,24 +21,30 @@ public class Health : MonoBehaviour
 
     public void TakeDamage(int amount)
     {
+        if (isDead) return;
+
         currentHealth -= amount;
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
-
         Debug.Log($"{gameObject.name} took {amount} damage. Remaining HP: {currentHealth}");
+
         UpdateHealthBar();
 
         if (currentHealth <= 0)
         {
             Die();
         }
+        if (CinemachineShake.instance != null)
+            CinemachineShake.instance.Shake();
     }
 
     public void RestoreHealth(int amount)
     {
+        if (isDead) return;
+
         currentHealth += amount;
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
-
         Debug.Log($"{gameObject.name} healed {amount} HP. Current HP: {currentHealth}");
+
         UpdateHealthBar();
     }
 
@@ -49,12 +58,20 @@ public class Health : MonoBehaviour
 
     private void Die()
     {
-        Debug.Log($"{gameObject.name} is dead.");
-        OnDeath();
-    }
+        if (isDead) return;
 
-    protected virtual void OnDeath()
-    {
-        Destroy(gameObject);
+        isDead = true;
+        Debug.Log($"{gameObject.name} is dead.");
+
+        // Ici tu peux désactiver le contrôle du joueur, l'animator, etc.
+
+        if (menuMort != null)
+        {
+            menuMort.ActiverMenuMort(); // Affiche le canvas de mort
+        }
+        else
+        {
+            Debug.LogWarning("MenuMort n'est pas assigné !");
+        }
     }
 }

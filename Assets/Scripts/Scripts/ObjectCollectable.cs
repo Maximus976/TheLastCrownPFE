@@ -11,11 +11,13 @@ public class ObjectCollectable : MonoBehaviour
     public GameObject popUpPanel;  // Panel du pop-up (toujours actif)
     public TMP_Text itemDescriptionText;  // TMP_Text pour afficher la description de l'objet
     public TMP_Text itemsCollectedText;  // TMP_Text pour afficher le nombre d'objets collectés
+
+    public static List<GameObject> collectedObjects = new List<GameObject>(); // Liste des objets collectés
+
     private bool playerInRange = false;  // Flag pour savoir si le joueur est dans la zone
 
     private void OnTriggerEnter(Collider other)
     {
-        // Quand le joueur entre dans la zone de détection
         if (other.CompareTag("Player"))
         {
             playerInRange = true;
@@ -24,7 +26,6 @@ public class ObjectCollectable : MonoBehaviour
 
     private void OnTriggerExit(Collider other)
     {
-        // Quand le joueur quitte la zone de détection
         if (other.CompareTag("Player"))
         {
             playerInRange = false;
@@ -33,7 +34,6 @@ public class ObjectCollectable : MonoBehaviour
 
     void Update()
     {
-        // Si le joueur est dans la zone de détection et appuie sur JoystickButton2
         if (playerInRange && Input.GetKeyDown(KeyCode.JoystickButton2))
         {
             CollectItem();
@@ -42,25 +42,28 @@ public class ObjectCollectable : MonoBehaviour
 
     void CollectItem()
     {
-        // Afficher la description de l'objet via TMP_Text
+        // Affiche la description de l'objet
         itemDescriptionText.text = itemDescription;
 
-        // Afficher le nombre d'objets collectés
+        // Incrémente et affiche le nombre d'objets collectés
         itemsCollected++;
-        itemsCollectedText.text = $"{itemsCollected}/{totalItems} objets récupérés";
+        itemsCollectedText.text = $"{itemsCollected}/{totalItems} objets";
 
-        // Afficher le pop-up et mettre le jeu en pause
+        // Ajoute l'objet à la liste des objets collectés
+        collectedObjects.Add(gameObject);
+
+        // Affiche le pop-up et met le jeu en pause
         popUpPanel.SetActive(true);
-        Time.timeScale = 0;
+        Time.timeScale = 0f;
 
-        // Désactiver l'objet collectable
+        // Désactive l'objet
         gameObject.SetActive(false);
     }
 
     public void ClosePopUp()
     {
-        // Fermer le pop-up et relancer le jeu
+        // Ferme le pop-up et relance le jeu
         popUpPanel.SetActive(false);
-        Time.timeScale = 1;  // Relancer le jeu à l'endroit où il était
+        Time.timeScale = 1f;
     }
 }

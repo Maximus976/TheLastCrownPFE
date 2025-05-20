@@ -79,12 +79,12 @@ public class Intro : MonoBehaviour
             new TextPair {
                 line1 = "Pour accomplir sa destinée,\nil devra traverser les ruines de l’ancien monde, se relever après chaque chute,",
                 line2 = "et affronter Mordred... fruit d'un serment brisé.",
-                delayBeforeLine2 = 5f
+                delayBeforeLine2 = 4.5f
             },
             new TextPair {
                 line1 = "Je suis la Dame du Lac.\nSon arme, sa mémoire.",
                 line2 = "Et aujourd’hui, je vous raconte ce que j’ai vu,\navant que vous ne le découvriez par vous même.",
-                delayBeforeLine2 = 3f
+                delayBeforeLine2 = 2.5f
             }
         };
     }

@@ -9,12 +9,20 @@ public class Destructible : MonoBehaviour
     public int health = 100;
     public GameObject destructionEffect;
     public GameObject destructionEffect2;
-    public GameObject destructionEffect3; // Nouveau champ pour l'effet d'étoiles de soin
+    public GameObject destructionEffect3; // Effet d'étoiles de soin
+    public GameObject impactEffect;       // ?? Effet d'impact à l'impact
 
     public void TakeDamage(int damage)
     {
         health -= damage;
         Debug.Log($"{gameObject.name} took {damage} damage. Remaining HP: {health}");
+
+        // ?? Instancier l'effet d'impact à la position actuelle
+        if (impactEffect != null)
+        {
+            GameObject impact = Instantiate(impactEffect, transform.position, transform.rotation);
+            Destroy(impact, 2f); // Durée de vie de l'effet d'impact
+        }
 
         if (health <= 0)
         {
@@ -29,7 +37,6 @@ public class Destructible : MonoBehaviour
             GameObject effect1 = Instantiate(destructionEffect, transform.position, transform.rotation);
             Instantiate(destructionEffect2, transform.position, transform.rotation);
 
-            // Instancier le 3ème effet : les étoiles de soin
             if (destructionEffect3 != null)
             {
                 Instantiate(destructionEffect3, transform.position, transform.rotation);

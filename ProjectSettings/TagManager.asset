@@ -9,6 +9,7 @@ TagManager:
   - Wall
   - Levier
   - MurDestructible
+  - ZoneCameraSwitch1
   layers:
   - Default
   - TransparentFX
@@ -22,7 +23,7 @@ TagManager:
   - Ennemi
   - WindFX
   - Player2
-  - Cliff
+  - Collectable
   - 
   - 
   - 
