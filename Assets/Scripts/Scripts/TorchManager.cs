@@ -13,10 +13,9 @@ public class TorchManager : MonoBehaviour
 
     public AudioSource failSound;
     public AudioSource successSound;
-    public AudioSource doorOpenSound; // <-- Nouveau son ajouté ici
+    public AudioSource doorOpenSound;
 
-    public Animator doorAnimator;
-    public string openTriggerName = "Open";
+    public Grille grilleScript; // ? Référence vers le script Grille (pas GameObject directement)
 
     public void OnTorchInteraction(Torch torch)
     {
@@ -48,11 +47,11 @@ public class TorchManager : MonoBehaviour
         foreach (Torch torch in torches)
             torch.Lock();
 
-        if (doorAnimator != null)
+        if (grilleScript != null)
         {
-            doorAnimator.SetTrigger(openTriggerName);
+            grilleScript.OuvrirGrille(); // ? Appelle l’ouverture animée de la grille
 
-            if (doorOpenSound) // <-- On joue le son de la porte ici
+            if (doorOpenSound)
                 doorOpenSound.Play();
         }
     }

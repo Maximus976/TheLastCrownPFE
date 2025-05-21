@@ -18,7 +18,7 @@ public class Torch : MonoBehaviour
 
     void Update()
     {
-        if (playerInRange && !isLocked && Input.GetKeyDown(KeyCode.E))
+        if (playerInRange && !isLocked && (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.JoystickButton2)))
         {
             manager.OnTorchInteraction(this);
         }
