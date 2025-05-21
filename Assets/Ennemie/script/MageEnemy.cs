@@ -29,9 +29,6 @@ public class MageEnemy : MonoBehaviour
     [SerializeField] private Transform firePoint;
     [SerializeField] private float projectileSpeed = 12f;
 
-    [Header("Target")]
-    [SerializeField] private Transform player;
-
     [Header("Visual Feedback")]
     [SerializeField] private SkinnedMeshRenderer meshRenderer;
     [SerializeField] private Color flashColor = Color.white;
@@ -53,27 +50,26 @@ public class MageEnemy : MonoBehaviour
     private bool playedChargeAnim = false;
     private bool isStunned = false;
     private Coroutine stunCoroutine;
+    private Transform target;
 
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
         health = GetComponent<EnemyHealth>();
-
-        if (player == null && GameObject.FindGameObjectWithTag("Player") != null)
-            player = GameObject.FindGameObjectWithTag("Player").transform;
+        FindTarget();
     }
 
     void Update()
     {
-        if (player == null || isStunned || (health != null && health.IsDead)) return;
+        if (target == null || isStunned || (health != null && health.IsDead)) return;
 
         if (animator != null && agent != null)
         {
             animator.SetFloat("Speed", agent.velocity.magnitude, 0.1f, Time.deltaTime);
         }
 
-        float distance = Vector3.Distance(transform.position, player.position);
+        float distance = Vector3.Distance(transform.position, target.position);
 
         if (currentState == MageState.PreparingAttack && distance > attackRange)
         {
@@ -112,7 +108,10 @@ public class MageEnemy : MonoBehaviour
     {
         if (distance <= detectionRange)
         {
-            currentState = MageState.Chasing;
+            agent.SetDestination(transform.position);
+            stateTimer = attackDelay;
+            playedChargeAnim = false;
+            currentState = MageState.PreparingAttack;
         }
     }
 
@@ -127,14 +126,14 @@ public class MageEnemy : MonoBehaviour
         }
         else
         {
-            agent.SetDestination(player.position);
-            FacePlayer();
+            agent.SetDestination(target.position);
+            FaceTarget();
         }
     }
 
     private void HandlePreparingAttack(float distance)
     {
-        FacePlayer();
+        FaceTarget();
         ForceStopMovement();
 
         if (!playedChargeAnim && animator != null)
@@ -151,6 +150,7 @@ public class MageEnemy : MonoBehaviour
 
         if (stateTimer <= 0f)
         {
+            wasRecentlyHit = false; // Correction ici
             Attack();
             currentState = MageState.Attacking;
         }
@@ -158,7 +158,7 @@ public class MageEnemy : MonoBehaviour
 
     private void HandleAttacking(float distance)
     {
-        FacePlayer();
+        FaceTarget();
         ForceStopMovement();
 
         if (distance <= tooCloseDistance && Time.time - lastRetreatTime >= retreatCooldown)
@@ -194,7 +194,7 @@ public class MageEnemy : MonoBehaviour
         stateTimer -= Time.deltaTime;
         if (stateTimer <= 0f)
         {
-            Vector3 retreatDir = (transform.position - player.position).normalized;
+            Vector3 retreatDir = (transform.position - target.position).normalized;
             Vector3 targetPos = transform.position + retreatDir * retreatDistance;
 
             if (NavMesh.SamplePosition(targetPos, out NavMeshHit hit, 2f, NavMesh.AllAreas))
@@ -237,7 +237,7 @@ public class MageEnemy : MonoBehaviour
     {
         if (projectilePrefab == null || firePoint == null) return;
 
-        Vector3 dir = (player.position + Vector3.up) - firePoint.position;
+        Vector3 dir = (target.position + Vector3.up) - firePoint.position;
         Quaternion lookRotation = Quaternion.LookRotation(dir);
         Quaternion correction = Quaternion.Euler(0, -90, 0);
         Quaternion finalRotation = lookRotation * correction;
@@ -261,7 +261,7 @@ public class MageEnemy : MonoBehaviour
 
         wasRecentlyHit = true;
         currentState = MageState.Attacking;
-        lastAttackTime = Time.time; // impose le cooldown
+        lastAttackTime = Time.time;
 
         ForceStopMovement();
 
@@ -297,7 +297,7 @@ public class MageEnemy : MonoBehaviour
 
         if (hitType == 2)
         {
-            Vector3 dir = (transform.position - player.position).normalized;
+            Vector3 dir = (transform.position - target.position).normalized;
             dir.y = 0;
             float timer = 0f;
             while (timer < knockbackTime)
@@ -370,9 +370,9 @@ public class MageEnemy : MonoBehaviour
         ForceStopMovement();
     }
 
-    private void FacePlayer()
+    private void FaceTarget()
     {
-        Vector3 direction = (player.position - transform.position).normalized;
+        Vector3 direction = (target.position - transform.position).normalized;
         direction.y = 0f;
         if (direction != Vector3.zero)
         {
@@ -386,6 +386,12 @@ public class MageEnemy : MonoBehaviour
 
         agent.SetDestination(transform.position);
         agent.velocity = Vector3.zero;
+    }
+
+    private void FindTarget()
+    {
+        GameObject obj = GameObject.FindGameObjectWithTag("Player");
+        if (obj != null) target = obj.transform;
     }
 
     private void OnDrawGizmosSelected()
