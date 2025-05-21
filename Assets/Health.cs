@@ -10,8 +10,9 @@ public class Health : MonoBehaviour
     private bool isDead = false;
 
     [Header("UI")]
-    [SerializeField] private Image healthBarFill;  // Barre de vie à mettre à jour
-    [SerializeField] private MenuMort menuMort;     // Script du menu de mort
+    [SerializeField] private Image healthBarFill;   // Barre de vie à mettre à jour
+    [SerializeField] private MenuMort menuMort;      // Script du menu de mort
+    [SerializeField] private GameObject hudUI;       // HUD à désactiver à la mort
 
     private void Start()
     {
@@ -33,6 +34,7 @@ public class Health : MonoBehaviour
         {
             Die();
         }
+
         if (CinemachineShake.instance != null)
             CinemachineShake.instance.Shake();
     }
@@ -63,11 +65,16 @@ public class Health : MonoBehaviour
         isDead = true;
         Debug.Log($"{gameObject.name} is dead.");
 
-        // Ici tu peux désactiver le contrôle du joueur, l'animator, etc.
+        // Désactiver le HUD
+        if (hudUI != null)
+        {
+            hudUI.SetActive(false);
+        }
 
+        // Appeler le menu de mort
         if (menuMort != null)
         {
-            menuMort.ActiverMenuMort(); // Affiche le canvas de mort
+            menuMort.ActiverMenuMort();
         }
         else
         {

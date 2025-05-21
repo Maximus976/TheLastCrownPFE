@@ -2,15 +2,17 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-
+using UnityEngine.EventSystems;
 public class MenuMort : MonoBehaviour
 {
-    public GameObject pauseMenuUI;
+    public GameObject pauseMenuUI;       // Ton panel contenant GameOverUI + boutons
+    public GameOverUI gameOverUI;        // Référence au script GameOverUI sur le même panel
     public GameObject[] menuButtons;
     public GameObject leafPrefab;
+    public UnityEngine.Rendering.Volume globalVolume;  // référence à ton Global Volume (pour activer le flou)
 
     [Header("Scène de redémarrage")]
-    public string sceneRetryName = "NomDeTaSceneDeJeu"; // À définir dans l'inspecteur
+    public string sceneRetryName = "NomDeTaSceneDeJeu";
 
     private int currentIndex = 0;
     private bool isPaused = false;
@@ -31,6 +33,9 @@ public class MenuMort : MonoBehaviour
             menuItems[i] = menuButtons[i].GetComponent<PauseMenuItem>();
             menuButtons[i].SetActive(false);
         }
+
+        if (globalVolume != null)
+            globalVolume.enabled = false;
 
         UpdateSelection();
     }
@@ -84,8 +89,52 @@ public class MenuMort : MonoBehaviour
     {
         isPaused = true;
         pauseMenuUI.SetActive(true);
-        StartCoroutine(ShowMenuButtons());
+
+        if (globalVolume != null)
+            globalVolume.enabled = true;
+
         Time.timeScale = 0f;
+
+        StartCoroutine(ShowMenuSequence());
+    }
+
+    private IEnumerator ShowMenuSequence()
+    {
+        yield return StartCoroutine(gameOverUI.GameOverSequence());
+
+        foreach (GameObject button in menuButtons)
+            button.SetActive(false);
+
+        currentLeaf.SetActive(false);
+        inputLocked = true;
+
+        // Affiche les boutons progressivement avec fade alpha (optionnel)
+        for (int i = 0; i < menuButtons.Length; i++)
+        {
+            GameObject button = menuButtons[i];
+            button.SetActive(true);
+
+            CanvasGroup group = button.GetComponent<CanvasGroup>();
+            if (group != null)
+            {
+                group.alpha = 0f;
+                float duration = 0.3f;
+                float elapsed = 0f;
+
+                while (elapsed < duration)
+                {
+                    elapsed += Time.unscaledDeltaTime;
+                    float t = Mathf.Clamp01(elapsed / duration);
+                    group.alpha = t;
+                    yield return null;
+                }
+                group.alpha = 1f;
+            }
+            yield return new WaitForSecondsRealtime(0.05f);
+        }
+
+        UpdateSelection();
+        inputLocked = false;
     }
 
     public void SelectButton(int index)
@@ -107,12 +156,18 @@ public class MenuMort : MonoBehaviour
     public void RetryScene()
     {
         Time.timeScale = 1f;
+        if (globalVolume != null)
+            globalVolume.enabled = false;
+
         SceneManager.LoadScene(sceneRetryName);
     }
 
     public void ReturnToMainMenu()
     {
         Time.timeScale = 1f;
+        if (globalVolume != null)
+            globalVolume.enabled = false;
+
         SceneManager.LoadScene("Menu");
     }
 
@@ -124,44 +179,4 @@ public class MenuMort : MonoBehaviour
         UnityEditor.EditorApplication.isPlaying = false;
 #endif
     }
-
-    IEnumerator ShowMenuButtons()
-    {
-        foreach (GameObject button in menuButtons)
-        {
-            button.SetActive(false);
-        }
-
-        currentLeaf.SetActive(false);
-        inputLocked = true;
-
-        for (int i = 0; i < menuButtons.Length; i++)
-        {
-            GameObject button = menuButtons[i];
-            button.SetActive(true);
-
-            CanvasGroup group = button.GetComponent<CanvasGroup>();
-            if (group != null)
-            {
-                group.alpha = 0f;
-                float duration = 0.3f;
-                float elapsed = 0f;
-
-                while (elapsed < duration)
-                {
-                    elapsed += Time.unscaledDeltaTime;
-                    float t = Mathf.Clamp01(elapsed / duration);
-                    group.alpha = t;
-                    yield return null;
-                }
-
-                group.alpha = 1f;
-            }
-
-            yield return new WaitForSecondsRealtime(0.05f);
-        }
-
-        UpdateSelection();
-        inputLocked = false;
-    }
-}
+} 
