@@ -963,7 +963,11 @@ MonoBehaviour:
   - {fileID: 1364081562029385603}
   leafPrefab: {fileID: 2414189067448971767}
   globalVolume: {fileID: 7903275986699128527}
-  sceneRetryName: LorisTestMaxJTM
+  sceneRetryName: Tutoriel_Stable
+  navigateAudioSource: {fileID: 5549818911613715803, guid: 4332f46104f729f469a62d7b0a4d3c7f,
+    type: 3}
+  selectAudioSource: {fileID: 5636941965276759081, guid: 370db8486be265347b99b97809a7ff0e,
+    type: 3}
 --- !u!1 &3333038840778221794
 GameObject:
   m_ObjectHideFlags: 0

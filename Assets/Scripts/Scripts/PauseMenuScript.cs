@@ -9,6 +9,11 @@ public class PauseMenuScript : MonoBehaviour
     public GameObject[] menuButtons;
     public GameObject leafPrefab;
 
+    [Header("Audio")]
+    public AudioSource openMenuAudioSource;
+    public AudioSource navigateAudioSource;
+    public AudioSource selectAudioSource;
+
     private int currentIndex = 0;
     private bool isPaused = false;
     private bool inputLocked = false;
@@ -26,7 +31,7 @@ public class PauseMenuScript : MonoBehaviour
         for (int i = 0; i < menuButtons.Length; i++)
         {
             menuItems[i] = menuButtons[i].GetComponent<PauseMenuItem>();
-            menuButtons[i].SetActive(false); // Important : cachés au départ
+            menuButtons[i].SetActive(false);
         }
 
         UpdateSelection();
@@ -55,13 +60,17 @@ public class PauseMenuScript : MonoBehaviour
                 currentIndex = (currentIndex - 1 + menuButtons.Length) % menuButtons.Length;
 
             if (previousIndex != currentIndex)
+            {
                 UpdateSelection();
+                PlayNavigateSound();
+            }
 
             StartCoroutine(UnlockInputAfterDelay(0.2f));
         }
 
         if (!inputLocked && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.JoystickButton1)))
         {
+            PlaySelectSound();
             SelectButton(currentIndex);
         }
     }
@@ -89,6 +98,7 @@ public class PauseMenuScript : MonoBehaviour
     {
         isPaused = true;
         pauseMenuUI.SetActive(true);
+        PlayOpenMenuSound();
         StartCoroutine(ShowMenuButtons());
         Time.timeScale = 0f;
     }
@@ -155,10 +165,28 @@ public class PauseMenuScript : MonoBehaviour
                 group.alpha = 1f;
             }
 
-            yield return new WaitForSecondsRealtime(0.05f); // délai entre chaque bouton
+            yield return new WaitForSecondsRealtime(0.05f);
         }
 
         UpdateSelection();
         inputLocked = false;
+    }
+
+    void PlayNavigateSound()
+    {
+        if (navigateAudioSource != null)
+            navigateAudioSource.Play();
+    }
+
+    void PlaySelectSound()
+    {
+        if (selectAudioSource != null)
+            selectAudioSource.Play();
+    }
+
+    void PlayOpenMenuSound()
+    {
+        if (openMenuAudioSource != null)
+            openMenuAudioSource.Play();
     }
 }
