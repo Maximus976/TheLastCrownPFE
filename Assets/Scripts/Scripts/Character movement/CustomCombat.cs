@@ -10,32 +10,42 @@ public class CustomCombat : MonoBehaviour
     [SerializeField] private float attackDashTime = 0.1f;
     [SerializeField] private float attackAnimDuration = 0.4f;
     [SerializeField] private float hitRange = 1.5f;
-    [SerializeField] private float attackInputCooldown = 0.2f;
     [SerializeField] private int damageAmount = 10;
     [SerializeField] private LayerMask enemyLayer;
     [SerializeField] private LayerMask groundMask;
-    [SerializeField] private GameObject attackVFXPrefab;
+    [SerializeField] private GameObject[] attackVFXPrefabs;
     [SerializeField] private Transform vfxSpawnPoint;
+    [SerializeField] private AudioClip attackSFX;
+    [SerializeField] private float attackInputCooldown = 0.2f;
 
-    private float lastAttackInputTime = -999f;
     private int comboStep = 0;
     private bool isPerformingAttack = false;
-    public bool IsAttacking => isPerformingAttack;
     private bool attackQueued = false;
+    private float lastAttackInputTime = -999f;
+
     private Coroutine currentAttackCoroutine;
     private Camera mainCamera;
-    private bool usingGamepad = false;
     private Vector3 lastMouseDirection = Vector3.forward;
+
+    private AudioSource audioSource;
+
+    public bool IsAttacking => isPerformingAttack;
 
     void Start()
     {
         mainCamera = Camera.main;
+
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+            audioSource.playOnAwake = false;
+            audioSource.spatialBlend = 1f; // Son 3D
+        }
     }
 
     void Update()
     {
-        DetectInputMethod();
-
         if ((Input.GetMouseButtonDown(0) || Input.GetButtonDown("Fire1")))
         {
             if (Time.time - lastAttackInputTime < attackInputCooldown)
@@ -43,10 +53,7 @@ public class CustomCombat : MonoBehaviour
 
             lastAttackInputTime = Time.time;
 
-            if (!usingGamepad)
-                RotateTowardMouseInstant();
-            else
-                RotateTowardStick();
+            RotateTowardMouseInstant();
 
             if (isPerformingAttack)
             {
@@ -59,15 +66,6 @@ public class CustomCombat : MonoBehaviour
         }
     }
 
-    private void DetectInputMethod()
-    {
-        if (Input.GetAxis("Mouse X") != 0 || Input.GetAxis("Mouse Y") != 0)
-            usingGamepad = false;
-
-        if (Input.GetButtonDown("Fire1") || Mathf.Abs(Input.GetAxis("RightStickHorizontal")) > 0.1f || Mathf.Abs(Input.GetAxis("RightStickVertical")) > 0.1f)
-            usingGamepad = true;
-    }
-
     private void RotateTowardMouseInstant()
     {
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
@@ -76,29 +74,6 @@ public class CustomCombat : MonoBehaviour
             Vector3 dir = hit.point - transform.position;
             dir.y = 0f;
             lastMouseDirection = dir.normalized;
-        }
-    }
-
-    private void RotateTowardStick()
-    {
-        float x = Input.GetAxis("RightStickHorizontal");
-        float y = Input.GetAxis("RightStickVertical");
-        Vector3 input = new Vector3(x, 0f, y);
-
-        if (input.magnitude > 0.1f)
-        {
-            Transform cam = Camera.main.transform;
-            Vector3 forward = cam.forward;
-            Vector3 right = cam.right;
-            forward.y = right.y = 0;
-            forward.Normalize(); right.Normalize();
-
-            Vector3 aimDir = (y * forward + x * right).normalized;
-            lastMouseDirection = aimDir;
-        }
-        else
-        {
-            lastMouseDirection = transform.forward;
         }
     }
 
@@ -133,10 +108,20 @@ public class CustomCombat : MonoBehaviour
                 yield return new WaitForFixedUpdate();
             }
 
-            if (attackVFXPrefab && vfxSpawnPoint)
+            // VFX avec rotation -30° sur Y
+            if (attackVFXPrefabs[currentHit-1] && vfxSpawnPoint)
             {
                 yield return new WaitForSeconds(0.1f);
-                Instantiate(attackVFXPrefab, vfxSpawnPoint.position, Quaternion.LookRotation(transform.forward));
+                Quaternion rotationOffset = Quaternion.Euler(0, -30f, 0);
+                Quaternion finalRotation = rotationOffset * Quaternion.LookRotation(transform.forward);
+                Instantiate(attackVFXPrefabs[currentHit-1], vfxSpawnPoint.position, finalRotation);
+                
+            }
+
+            // Son de l'attaque
+            if (attackSFX != null)
+            {
+                audioSource.PlayOneShot(attackSFX);
             }
 
             CheckForEnemiesHit();
