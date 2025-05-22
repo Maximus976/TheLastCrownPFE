@@ -6,84 +6,67 @@ using UnityEngine.UI;
 
 public class Statue : MonoBehaviour
 {
-    public GameObject narrationPanel;
-    public TMP_Text narrationText;
-    public Image holdCircle;
-    public float holdDuration = 2f;
-    public GameObject grille;
+    [Header("Interaction et UI")]
+    public GameObject missingPanel;      // Panel affiché si objets manquants
+    public TMP_Text missingText;
 
-    public List<Transform> dropPoints; // Liste de positions fixes
+    [Header("Références")]
+    public GameObject grille;            // La grille à ouvrir
+    public Transform statueModel;        // Le modèle 3D de la statue à secouer/descendre
+    public List<Transform> dropPoints;   // Positions pour déposer les objets
+    public GameObject detectionZone;     // ? Zone de détection à supprimer après interaction
+
+    [Header("Audio")]
+    public AudioSource shakeSound;       // Son de secousse
+    public AudioSource descendSound;     // Son pendant la descente
+
+    [Header("Effets")]
+    public float shakeDuration = 0.5f;
+    public float shakeMagnitude = 0.1f;
+    public float descendTargetY = -8.07f;
+    public float descendDuration = 2f;
 
     private bool playerInZone = false;
     private bool eventTriggered = false;
-    private float holdTimer = 0f;
-    private bool panelActive = false;
-    private bool isDepositing = false;
+
+    void Update()
+    {
+        if (playerInZone && Input.GetKeyDown(KeyCode.JoystickButton2))
+        {
+            if (eventTriggered) return;
+
+            if (ObjectCollectable.itemsCollected >= ObjectCollectable.totalItems)
+            {
+                StartCoroutine(HandleStatueEvent());
+            }
+            else
+            {
+                ShowMissingPanel("Il vous manque encore des fragments à récupérer...");
+            }
+        }
+    }
 
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
-        {
             playerInZone = true;
-        }
     }
 
     private void OnTriggerExit(Collider other)
     {
         if (other.CompareTag("Player"))
-        {
             playerInZone = false;
-            CancelDeposit();
-        }
     }
 
-    void Update()
+    IEnumerator HandleStatueEvent()
     {
-        if (playerInZone && !eventTriggered && ObjectCollectable.itemsCollected >= ObjectCollectable.totalItems)
-        {
-            if (Input.GetKeyDown(KeyCode.JoystickButton2) && !panelActive)
-            {
-                ShowNarration();
-                isDepositing = true;
-            }
+        eventTriggered = true;
 
-            if (isDepositing && panelActive)
-            {
-                if (Input.GetKey(KeyCode.JoystickButton2))
-                {
-                    holdTimer += Time.unscaledDeltaTime;
-                    holdCircle.fillAmount = holdTimer / holdDuration;
+        // ? Supprimer la zone de détection si définie
+        if (detectionZone != null)
+            Destroy(detectionZone);
 
-                    if (holdTimer >= holdDuration)
-                    {
-                        CloseNarrationAndOpenGrille();
-                    }
-                }
-                else
-                {
-                    holdTimer = 0f;
-                    holdCircle.fillAmount = 0f;
-                }
-            }
-        }
-    }
-
-    void ShowNarration()
-    {
-        panelActive = true;
-        narrationPanel.SetActive(true);
-        narrationText.text = "Vous avez restauré les fragments perdus...\nLe chemin s’ouvre à nouveau.";
-        Time.timeScale = 0f;
-        holdTimer = 0f;
-        holdCircle.fillAmount = 0f;
-    }
-
-    void CloseNarrationAndOpenGrille()
-    {
-        Time.timeScale = 1f;
-        narrationPanel.SetActive(false);
-
-        // Redéposer les objets à leurs points définis
+        // ? Déposer les objets collectés aux bons emplacements
         for (int i = 0; i < ObjectCollectable.collectedObjects.Count; i++)
         {
             GameObject obj = ObjectCollectable.collectedObjects[i];
@@ -93,19 +76,49 @@ public class Statue : MonoBehaviour
                 obj.transform.rotation = dropPoints[i].rotation;
                 obj.SetActive(true);
 
-                // Désactive le collider
-                Collider col = obj.GetComponent<Collider>();
+                var col = obj.GetComponent<Collider>();
                 if (col) col.enabled = false;
 
-                // Désactive le script de collecte
-                ObjectCollectable script = obj.GetComponent<ObjectCollectable>();
+                var script = obj.GetComponent<ObjectCollectable>();
                 if (script) Destroy(script);
 
-                // Désactive l'oscillation
-                OcciliationObjet floatScript = obj.GetComponent<OcciliationObjet>();
+                var floatScript = obj.GetComponent<OcciliationObjet>();
                 if (floatScript) floatScript.DisableFloating();
             }
         }
+
+        // ? Jouer le son de secousse
+        if (shakeSound) shakeSound.Play();
+
+        // ? Animation de secousse
+        Vector3 originalPos = statueModel.position;
+        float timer = 0f;
+        while (timer < shakeDuration)
+        {
+            float offsetX = Random.Range(-1f, 1f) * shakeMagnitude;
+            float offsetZ = Random.Range(-1f, 1f) * shakeMagnitude;
+            statueModel.position = originalPos + new Vector3(offsetX, 0f, offsetZ);
+            timer += Time.deltaTime;
+            yield return null;
+        }
+        statueModel.position = originalPos;
+
+        // ? Jouer le son de descente
+        if (descendSound) descendSound.Play();
+
+        // ? Descente fluide
+        Vector3 start = statueModel.position;
+        Vector3 target = new Vector3(start.x, descendTargetY, start.z);
+        float t = 0f;
+        while (t < descendDuration)
+        {
+            statueModel.position = Vector3.Lerp(start, target, t / descendDuration);
+            t += Time.deltaTime;
+            yield return null;
+        }
+        statueModel.position = target;
+
+        // ? Ouverture de la grille
         if (grille != null)
         {
             Grille grilleScript = grille.GetComponent<Grille>();
@@ -114,23 +127,24 @@ public class Statue : MonoBehaviour
                 grilleScript.OuvrirGrille();
             }
         }
-
-        eventTriggered = true;
-        panelActive = false;
-        isDepositing = false;
     }
 
-    void CancelDeposit()
+    void ShowMissingPanel(string message)
     {
-        if (panelActive)
+        if (missingPanel && missingText)
         {
-            narrationPanel.SetActive(false);
-            Time.timeScale = 1f;
+            missingPanel.SetActive(true);
+            missingText.text = message;
+            Time.timeScale = 0f; // ? Pause du jeu
         }
+    }
 
-        holdTimer = 0f;
-        holdCircle.fillAmount = 0f;
-        panelActive = false;
-        isDepositing = false;
+    public void CloseMissingPanel()
+    {
+        if (missingPanel)
+        {
+            missingPanel.SetActive(false);
+            Time.timeScale = 1f; // ? Reprise du jeu
+        }
     }
 }

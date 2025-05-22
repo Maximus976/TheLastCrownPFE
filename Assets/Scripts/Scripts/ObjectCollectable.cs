@@ -6,30 +6,28 @@ using UnityEngine;
 public class ObjectCollectable : MonoBehaviour
 {
     public string itemDescription;  // Description de l'objet
-    public static int itemsCollected = 0;  // Nombre d'objets collectés
-    public static int totalItems = 4;  // Nombre total d'objets collectables
-    public GameObject popUpPanel;  // Panel du pop-up (toujours actif)
-    public TMP_Text itemDescriptionText;  // TMP_Text pour afficher la description de l'objet
-    public TMP_Text itemsCollectedText;  // TMP_Text pour afficher le nombre d'objets collectés
+    public static int itemsCollected = 0;
+    public static int totalItems = 4;
+    public GameObject popUpPanel;
+    public TMP_Text itemDescriptionText;
+    public TMP_Text itemsCollectedText;
 
-    public static List<GameObject> collectedObjects = new List<GameObject>(); // Liste des objets collectés
+    public GameObject detectionZone;  // ? Zone de détection à détruire
 
-    private bool playerInRange = false;  // Flag pour savoir si le joueur est dans la zone
+    public static List<GameObject> collectedObjects = new List<GameObject>();
+
+    private bool playerInRange = false;
 
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
-        {
             playerInRange = true;
-        }
     }
 
     private void OnTriggerExit(Collider other)
     {
         if (other.CompareTag("Player"))
-        {
             playerInRange = false;
-        }
     }
 
     void Update()
@@ -42,28 +40,29 @@ public class ObjectCollectable : MonoBehaviour
 
     void CollectItem()
     {
-        // Affiche la description de l'objet
         itemDescriptionText.text = itemDescription;
-
-        // Incrémente et affiche le nombre d'objets collectés
         itemsCollected++;
         itemsCollectedText.text = $"{itemsCollected}/{totalItems} objets";
-
-        // Ajoute l'objet à la liste des objets collectés
         collectedObjects.Add(gameObject);
 
-        // Affiche le pop-up et met le jeu en pause
         popUpPanel.SetActive(true);
         Time.timeScale = 0f;
 
-        // Désactive l'objet
+        if (detectionZone != null) Destroy(detectionZone); // ? Supprime la zone de détection
+
         gameObject.SetActive(false);
     }
 
     public void ClosePopUp()
     {
-        // Ferme le pop-up et relance le jeu
         popUpPanel.SetActive(false);
         Time.timeScale = 1f;
+    }
+
+    // --- Méthode pour réinitialiser le comptage et la liste ---
+    public static void ResetCollectables()
+    {
+        itemsCollected = 0;
+        collectedObjects.Clear();
     }
 }

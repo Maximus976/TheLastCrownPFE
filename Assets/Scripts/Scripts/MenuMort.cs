@@ -5,14 +5,14 @@ using UnityEngine.SceneManagement;
 using UnityEngine.EventSystems;
 public class MenuMort : MonoBehaviour
 {
-    public GameObject pauseMenuUI;       // Ton panel contenant GameOverUI + boutons
-    public GameOverUI gameOverUI;        // Référence au script GameOverUI sur le même panel
+    public GameObject pauseMenuUI;       // Panel contenant le menu de mort + boutons
+    public GameOverUI gameOverUI;        // Script GameOverUI pour séquence d'affichage
     public GameObject[] menuButtons;
     public GameObject leafPrefab;
-    public UnityEngine.Rendering.Volume globalVolume;  // référence à ton Global Volume (pour activer le flou)
+    public UnityEngine.Rendering.Volume globalVolume;  // Pour activer le flou
 
-    [Header("Scène de redémarrage")]
-    public string sceneRetryName = "NomDeTaSceneDeJeu";
+    [Header("Nom de la scène à recharger")]
+    public string sceneRetryName = "Tutoriel_Stable";
 
     private int currentIndex = 0;
     private bool isPaused = false;
@@ -108,7 +108,6 @@ public class MenuMort : MonoBehaviour
         currentLeaf.SetActive(false);
         inputLocked = true;
 
-        // Affiche les boutons progressivement avec fade alpha (optionnel)
         for (int i = 0; i < menuButtons.Length; i++)
         {
             GameObject button = menuButtons[i];
@@ -159,6 +158,9 @@ public class MenuMort : MonoBehaviour
         if (globalVolume != null)
             globalVolume.enabled = false;
 
+        // RESET des objets collectés à chaque nouvelle partie
+        ObjectCollectable.ResetCollectables();
+
         SceneManager.LoadScene(sceneRetryName);
     }
 
@@ -168,6 +170,9 @@ public class MenuMort : MonoBehaviour
         if (globalVolume != null)
             globalVolume.enabled = false;
 
+        // RESET des objets collectés
+        ObjectCollectable.ResetCollectables();
+
         SceneManager.LoadScene("Menu");
     }
 
@@ -175,8 +180,9 @@ public class MenuMort : MonoBehaviour
     {
         Debug.Log("Quitter le jeu");
         Application.Quit();
+
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
 #endif
     }
-} 
+}

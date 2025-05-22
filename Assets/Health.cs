@@ -1,10 +1,14 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using Cinemachine;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
+using UnityEngine.Rendering;
 using UnityEngine.UI;
 
 public class Health : MonoBehaviour
 {
+    [Header("Santé")]
     [SerializeField] private int maxHealth = 100;
     private int currentHealth;
     private bool isDead = false;
@@ -14,15 +18,42 @@ public class Health : MonoBehaviour
     [SerializeField] private Image healthBarFill;
     [SerializeField] private MenuMort menuMort;
     [SerializeField] private GameObject hudUI;
+    [SerializeField] private Image damageOverlay;
+
+    [Header("Overlay personnalisé")]
+    public Color overlayColor = Color.white;
+
+    [Header("Effets caméra")]
+    [SerializeField] private Volume globalVolume;
+    private Vignette vignette;
+
+    [Header("Effet vignette / overlay")]
+    [SerializeField] private float fadeOutDelay = 5f;
+    [SerializeField] private float fadeOutSpeed = 0.5f;
 
     [Header("Dependencies")]
-    [SerializeField] private Animator animator; // Ajout de référence à l'Animator
-    [SerializeField] private MonoBehaviour[] scriptsToDisableOnDeath; // Liste de scripts à désactiver à la mort
+    [SerializeField] private Animator animator;
+    [SerializeField] private MonoBehaviour[] scriptsToDisableOnDeath;
+
+    private float timeSinceLastDamage = 0f;
 
     private void Start()
     {
         currentHealth = maxHealth;
         UpdateHealthBar();
+
+        if (globalVolume != null && globalVolume.profile.TryGet(out Vignette v))
+        {
+            vignette = v;
+        }
+
+        if (damageOverlay != null)
+        {
+            damageOverlay.color = new Color(overlayColor.r, overlayColor.g, overlayColor.b, 0f);
+        }
+
+        StartCoroutine(OverlayPulseEffect());
+        StartCoroutine(VignetteFadeLogic());
     }
 
     public void TakeDamage(int amount)
@@ -31,17 +62,15 @@ public class Health : MonoBehaviour
 
         currentHealth -= amount;
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
-        Debug.Log($"{gameObject.name} took {amount} damage. Remaining HP: {currentHealth}");
+        timeSinceLastDamage = 0f;
 
         UpdateHealthBar();
 
         if (CinemachineShake.instance != null)
-            CinemachineShake.instance.Shake();
+            CinemachineShake.instance.ShakeCamera();
 
         if (currentHealth <= 0)
-        {
             Die();
-        }
     }
 
     public void RestoreHealth(int amount)
@@ -50,16 +79,70 @@ public class Health : MonoBehaviour
 
         currentHealth += amount;
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
-        Debug.Log($"{gameObject.name} healed {amount} HP. Current HP: {currentHealth}");
-
         UpdateHealthBar();
     }
 
     private void UpdateHealthBar()
     {
         if (healthBarFill != null)
-        {
             healthBarFill.fillAmount = (float)currentHealth / maxHealth;
+    }
+
+    private IEnumerator VignetteFadeLogic()
+    {
+        while (true)
+        {
+            timeSinceLastDamage += Time.deltaTime;
+            float hpPercent = (float)currentHealth / maxHealth;
+
+            float targetIntensity = 0f;
+
+            if (hpPercent <= 0.5f)
+            {
+                float severity = Mathf.InverseLerp(0.5f, 0f, hpPercent);
+                targetIntensity = Mathf.Lerp(0f, 0.4f, severity);
+            }
+
+            if (timeSinceLastDamage >= fadeOutDelay)
+            {
+                float current = vignette.intensity.value;
+                targetIntensity = Mathf.MoveTowards(current, 0f, Time.deltaTime * fadeOutSpeed);
+            }
+
+            if (vignette != null)
+            {
+                vignette.intensity.value = targetIntensity;
+                vignette.smoothness.value = 1f;
+                // couleur laissée libre (pas forcée à rouge)
+            }
+
+            yield return null;
+        }
+    }
+
+    private IEnumerator OverlayPulseEffect()
+    {
+        while (true)
+        {
+            float hpPercent = (float)currentHealth / maxHealth;
+
+            float baseAlpha = hpPercent <= 0.5f ? Mathf.Lerp(0f, 0.6f, 1f - hpPercent * 2f) : 0f;
+            float pulseSpeed = Mathf.Lerp(1f, 5f, 1f - hpPercent * 2f);
+
+            float t = 0f;
+            while (t < Mathf.PI * 2f)
+            {
+                t += Time.deltaTime * pulseSpeed;
+                float alpha = baseAlpha * (0.5f + Mathf.Sin(t) * 0.5f);
+
+                if (timeSinceLastDamage >= fadeOutDelay)
+                    alpha = Mathf.MoveTowards(damageOverlay.color.a, 0f, Time.deltaTime * fadeOutSpeed);
+
+                if (damageOverlay != null)
+                    damageOverlay.color = new Color(overlayColor.r, overlayColor.g, overlayColor.b, alpha);
+
+                yield return null;
+            }
         }
     }
 
@@ -68,38 +151,32 @@ public class Health : MonoBehaviour
         if (isDead) return;
         isDead = true;
 
-        Debug.Log($"{gameObject.name} is dead.");
+        dieType = Random.Range(1, 5);
 
-        // Choisir une animation de mort aléatoire entre 1 et 4
-        dieType = Random.Range(1, 5); // 5 est exclusif → [1, 4]
         if (animator != null)
         {
             animator.SetInteger("DieType", dieType);
             animator.SetTrigger("Die");
         }
 
-        // Désactiver le HUD
         if (hudUI != null)
-        {
             hudUI.SetActive(false);
-        }
 
-        // Désactiver les scripts spécifiés
         foreach (var script in scriptsToDisableOnDeath)
         {
             if (script != null)
                 script.enabled = false;
+
         }
 
-        // Afficher le menu de mort
-        if (menuMort != null)
-        {
-            menuMort.ActiverMenuMort();
-        }
-        else
-        {
-            Debug.LogWarning("MenuMort n'est pas assigné !");
-        }
+        StartCoroutine(DelayedGameOver());
     }
 
+    private IEnumerator DelayedGameOver()
+    {
+        yield return new WaitForSeconds(2f);
+
+        if (menuMort != null)
+            menuMort.ActiverMenuMort();
+    }
 }

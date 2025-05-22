@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameOverUI : MonoBehaviour
 {
@@ -9,7 +10,7 @@ public class GameOverUI : MonoBehaviour
     public TextMeshProUGUI mortText;
     public float fadeDuration = 1f;
     public float moveDuration = 2f;
-    public Vector3 moveOffset = new Vector3(0, 100f, 0); // vers le haut
+    public Vector3 moveOffset = new Vector3(0, 100f, 0);
 
     public GameObject[] buttons;
     public float delayBetweenButtons = 0.5f;
@@ -21,31 +22,37 @@ public class GameOverUI : MonoBehaviour
         gameOverPanel.alpha = 0f;
         gameOverPanel.blocksRaycasts = false;
 
-        // Juste pour tester
-        mortText.text = "Vous êtes mort";
+        // Tu peux laisser cette ligne ou la supprimer si le texte est défini ailleurs :
+        // mortText.text = "Vous êtes mort";
 
         initialTextPosition = mortText.rectTransform.anchoredPosition;
 
         foreach (var btn in buttons)
             btn.SetActive(false);
     }
+    public void OnRetryPressed()
+    {
+        if (SceneFade.instance != null)
+            SceneFade.instance.FadeOutAndReloadScene();
+        else
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
 
-    // Rendre public pour l'appeler depuis MenuMort
     public IEnumerator GameOverSequence()
     {
         gameOverPanel.blocksRaycasts = true;
 
-        // Fade-in du panel
+        // Fade-in
         float t = 0;
         while (t < fadeDuration)
         {
-            t += Time.unscaledDeltaTime; // timeScale=0 donc unscaled
+            t += Time.unscaledDeltaTime;
             gameOverPanel.alpha = Mathf.Lerp(0, 1, t / fadeDuration);
             yield return null;
         }
         gameOverPanel.alpha = 1f;
 
-        // Déplacement du texte
+        // Texte qui monte
         t = 0;
         Vector3 startPos = initialTextPosition;
         Vector3 targetPos = startPos + moveOffset;
@@ -58,7 +65,7 @@ public class GameOverUI : MonoBehaviour
         }
         mortText.rectTransform.anchoredPosition = targetPos;
 
-        // Apparition progressive des boutons
+        // Boutons qui apparaissent
         foreach (var btn in buttons)
         {
             btn.SetActive(true);
