@@ -10,9 +10,6 @@ public class CustomMovement : MonoBehaviour
     [SerializeField] private float sprintMultiplier = 1.5f;
     [SerializeField] private float sprintBoostDelay = 1.5f;
 
-    [Header("Sprint Control")]
-    [SerializeField] private float sprintAngleTolerance = 35f;
-
     [Header("Dash")]
     [SerializeField] private float dashSpeed = 15f;
     [SerializeField] private float dashTime = 0.2f;
@@ -35,10 +32,6 @@ public class CustomMovement : MonoBehaviour
     private float inputTapTimer = 0f;
     private float tapDuration = 0.1f;
 
-    private bool usingGamepad = false;
-    private float gamepadTimeout = 2f;
-    private float gamepadTimer = 0f;
-
     private CustomCombat combatScript;
 
     void Start()
@@ -59,7 +52,6 @@ public class CustomMovement : MonoBehaviour
     {
         if (combatScript != null && combatScript.IsAttacking) return;
 
-        DetectInputDevice();
         HandleInput();
 
         if (inputTapTimer > 0f)
@@ -79,29 +71,6 @@ public class CustomMovement : MonoBehaviour
         Vector3 targetVelocity = moveDirection.normalized * speed * targetSpeedMultiplier;
         Vector3 smoothedVelocity = Vector3.Lerp(currentVelocity, targetVelocity, Time.fixedDeltaTime * 10f);
         rb.velocity = new Vector3(smoothedVelocity.x, currentVelocity.y, smoothedVelocity.z);
-    }
-
-    private void DetectInputDevice()
-    {
-        if (Input.GetAxis("Mouse X") != 0 || Input.GetAxis("Mouse Y") != 0)
-        {
-            usingGamepad = false;
-            gamepadTimer = 0f;
-        }
-
-        if (Mathf.Abs(Input.GetAxis("RightStickHorizontal")) > 0.1f ||
-            Mathf.Abs(Input.GetAxis("RightStickVertical")) > 0.1f)
-        {
-            usingGamepad = true;
-            gamepadTimer = gamepadTimeout;
-        }
-
-        if (usingGamepad)
-        {
-            gamepadTimer -= Time.deltaTime;
-            if (gamepadTimer <= 0f)
-                usingGamepad = false;
-        }
     }
 
     private void HandleInput()
@@ -138,47 +107,17 @@ public class CustomMovement : MonoBehaviour
 
             moveDirection = (localDirection.z * forward + localDirection.x * right).normalized;
 
-            if (!combatScript.IsAttacking && !usingGamepad)
+            if (!combatScript.IsAttacking)
             {
                 Quaternion targetRot = Quaternion.LookRotation(moveDirection);
                 transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, rotationSpeed * Time.deltaTime);
             }
         }
 
-        Vector3 aimDirection = Vector3.zero;
-
-        if (usingGamepad)
-        {
-            float rightX = Input.GetAxis("RightStickHorizontal");
-            float rightY = Input.GetAxis("RightStickVertical");
-            Vector3 rightInput = new Vector3(rightX, 0f, rightY);
-
-            if (rightInput.magnitude > 0.1f)
-            {
-                Transform cam = Camera.main.transform;
-                Vector3 camForward = cam.forward;
-                Vector3 camRight = cam.right;
-                camForward.y = camRight.y = 0f;
-                camForward.Normalize();
-                camRight.Normalize();
-
-                aimDirection = (rightY * camForward + rightX * camRight).normalized;
-                Quaternion stickRot = Quaternion.LookRotation(aimDirection);
-                transform.rotation = Quaternion.Slerp(transform.rotation, stickRot, rotationSpeed * Time.deltaTime);
-            }
-        }
-
-        bool preventSprintByRotation = false;
-
-        if (usingGamepad && aimDirection != Vector3.zero && moveDirection != Vector3.zero)
-        {
-            float angle = Vector3.Angle(moveDirection, aimDirection);
-            preventSprintByRotation = angle > sprintAngleTolerance;
-        }
-
         bool holdingMovement = moveDirection.magnitude > 0.1f;
         bool shiftHeld = Input.GetKey(KeyCode.LeftShift) || Input.GetButton("Sprint");
-        isSprinting = shiftHeld && holdingMovement && !preventSprintByRotation;
+
+        isSprinting = shiftHeld && holdingMovement;
 
         targetSpeedMultiplier = isSprinting ? sprintMultiplier :
                                 runDuration < sprintBoostDelay ? walkMultiplier : 1f;

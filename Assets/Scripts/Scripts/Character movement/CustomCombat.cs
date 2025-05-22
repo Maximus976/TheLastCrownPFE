@@ -5,29 +5,27 @@ public class CustomCombat : MonoBehaviour
 {
     public Animator animator;
     public Rigidbody rb;
+
     [SerializeField] private float attackDashSpeed = 4f;
     [SerializeField] private float attackDashTime = 0.1f;
-    [SerializeField] private float attackAnimDuration = 0.5f;
-    [SerializeField] private float comboResetTime = 1.5f;
-    [SerializeField] private float comboEndDelay = 2f;
+    [SerializeField] private float attackAnimDuration = 0.4f;
     [SerializeField] private float hitRange = 1.5f;
+    [SerializeField] private float attackInputCooldown = 0.2f;
     [SerializeField] private int damageAmount = 10;
     [SerializeField] private LayerMask enemyLayer;
     [SerializeField] private LayerMask groundMask;
     [SerializeField] private GameObject attackVFXPrefab;
     [SerializeField] private Transform vfxSpawnPoint;
-    [SerializeField] private Transform swordTransform;
 
+    private float lastAttackInputTime = -999f;
     private int comboStep = 0;
-    private float lastAttackTime = 0f;
-    private bool isAttacking = false;
-    private Vector3 lastMouseDirection = Vector3.forward;
+    private bool isPerformingAttack = false;
+    public bool IsAttacking => isPerformingAttack;
+    private bool attackQueued = false;
     private Coroutine currentAttackCoroutine;
     private Camera mainCamera;
-
     private bool usingGamepad = false;
-
-    public bool IsAttacking => isAttacking;
+    private Vector3 lastMouseDirection = Vector3.forward;
 
     void Start()
     {
@@ -38,19 +36,26 @@ public class CustomCombat : MonoBehaviour
     {
         DetectInputMethod();
 
-        if ((Input.GetMouseButtonDown(0) || Input.GetButtonDown("Fire1")) && !isAttacking)
+        if ((Input.GetMouseButtonDown(0) || Input.GetButtonDown("Fire1")))
         {
+            if (Time.time - lastAttackInputTime < attackInputCooldown)
+                return;
+
+            lastAttackInputTime = Time.time;
+
             if (!usingGamepad)
                 RotateTowardMouseInstant();
             else
                 RotateTowardStick();
 
-            StartLightAttack();
-        }
-
-        if (Time.time - lastAttackTime > (comboStep == 2 ? comboEndDelay : comboResetTime))
-        {
-            comboStep = 0;
+            if (isPerformingAttack)
+            {
+                attackQueued = true;
+            }
+            else
+            {
+                StartAttackSequence();
+            }
         }
     }
 
@@ -97,72 +102,64 @@ public class CustomCombat : MonoBehaviour
         }
     }
 
-    public void StartLightAttack()
+    private void StartAttackSequence()
     {
-        if (isAttacking) return;
         if (currentAttackCoroutine != null)
             StopCoroutine(currentAttackCoroutine);
 
-        currentAttackCoroutine = StartCoroutine(PerformAttack());
+        currentAttackCoroutine = StartCoroutine(AttackRoutine());
     }
 
-    private IEnumerator PerformAttack()
+    private IEnumerator AttackRoutine()
     {
-        isAttacking = true;
+        isPerformingAttack = true;
 
-        Quaternion targetRot = Quaternion.LookRotation(lastMouseDirection);
-        rb.MoveRotation(targetRot);
-        yield return new WaitForFixedUpdate();
-
-        animator.SetTrigger($"Hit {comboStep + 1}");
-        comboStep = (comboStep + 1) % 3;
-
-        if (swordTransform)
+        do
         {
-            swordTransform.localRotation = Quaternion.Euler(90f, 0, 0);
-            StartCoroutine(ResetSwordRotationAfterDelay(0.5f));
-        }
+            attackQueued = false;
 
-        lastAttackTime = Time.time;
+            int currentHit = (comboStep % 2) + 1;
+            animator.SetTrigger($"Hit {currentHit}");
+            comboStep = (comboStep + 1) % 2;
 
-        float endDash = Time.time + attackDashTime;
-        while (Time.time < endDash)
-        {
-            rb.MovePosition(rb.position + transform.forward * attackDashSpeed * Time.fixedDeltaTime);
+            Quaternion targetRot = Quaternion.LookRotation(lastMouseDirection);
+            rb.MoveRotation(targetRot);
             yield return new WaitForFixedUpdate();
-        }
 
-        if (attackVFXPrefab && vfxSpawnPoint)
-        {
-            yield return new WaitForSeconds(0.1f);
-            Instantiate(attackVFXPrefab, vfxSpawnPoint.position, Quaternion.LookRotation(transform.forward));
-        }
+            float endDash = Time.time + attackDashTime;
+            while (Time.time < endDash)
+            {
+                rb.MovePosition(rb.position + transform.forward * attackDashSpeed * Time.fixedDeltaTime);
+                yield return new WaitForFixedUpdate();
+            }
 
-        CheckForEnemiesHit();
+            if (attackVFXPrefab && vfxSpawnPoint)
+            {
+                yield return new WaitForSeconds(0.1f);
+                Instantiate(attackVFXPrefab, vfxSpawnPoint.position, Quaternion.LookRotation(transform.forward));
+            }
 
-        yield return new WaitForSeconds(attackAnimDuration);
-        isAttacking = false;
-        animator.SetBool("IsInCombat", false);
-    }
+            CheckForEnemiesHit();
 
-    private IEnumerator ResetSwordRotationAfterDelay(float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        if (swordTransform != null)
-            swordTransform.localRotation = Quaternion.identity;
+            float elapsed = 0f;
+            while (elapsed < attackAnimDuration && !attackQueued)
+            {
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+
+        } while (attackQueued);
+
+        isPerformingAttack = false;
     }
 
     private void CheckForEnemiesHit()
     {
-        Debug.Log("Checking for enemies to hit...");
-
         Vector3 center = transform.position + transform.forward * 2f;
         Collider[] hits = Physics.OverlapSphere(center, hitRange, enemyLayer);
 
         foreach (Collider hit in hits)
         {
-            Debug.Log("Hit detected: " + hit.name);
-
             var enemyHealth = hit.GetComponentInParent<EnemyHealth>();
             if (enemyHealth != null)
             {
