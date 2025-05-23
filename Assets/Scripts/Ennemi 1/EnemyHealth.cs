@@ -62,6 +62,7 @@ public class EnemyHealth : MonoBehaviour
             animator.SetTrigger("Die");
         }
 
+        // Désactive NavMeshAgent ici (facultatif si déjà fait ailleurs)
         NavMeshAgent agent = GetComponent<NavMeshAgent>();
         if (agent != null)
         {
@@ -82,8 +83,15 @@ public class EnemyHealth : MonoBehaviour
         Collider col = GetComponent<Collider>();
         if (col != null) col.enabled = false;
 
+        // ✅ Appelle bien la méthode Die() de EnemyMovement
+        if (standardAI != null)
+        {
+            standardAI.Die(); // <- cette ligne est essentielle
+        }
+
         StartCoroutine(DelayedCleanup());
     }
+
 
     private void UpdateHealthBar()
     {
