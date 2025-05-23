@@ -26,8 +26,8 @@ public class CustomCombat : MonoBehaviour
     private Coroutine currentAttackCoroutine;
     private Camera mainCamera;
     private Vector3 lastMouseDirection = Vector3.forward;
-
     private AudioSource audioSource;
+    private bool usingGamepad = false;
 
     public bool IsAttacking => isPerformingAttack;
 
@@ -40,12 +40,14 @@ public class CustomCombat : MonoBehaviour
         {
             audioSource = gameObject.AddComponent<AudioSource>();
             audioSource.playOnAwake = false;
-            audioSource.spatialBlend = 1f; // Son 3D
+            audioSource.spatialBlend = 1f;
         }
     }
 
     void Update()
     {
+        DetectInputDevice();
+
         if ((Input.GetMouseButtonDown(0) || Input.GetButtonDown("Fire1")))
         {
             if (Time.time - lastAttackInputTime < attackInputCooldown)
@@ -53,7 +55,10 @@ public class CustomCombat : MonoBehaviour
 
             lastAttackInputTime = Time.time;
 
-            RotateTowardMouseInstant();
+            if (!usingGamepad)
+            {
+                RotateTowardMouseInstant();
+            }
 
             if (isPerformingAttack)
             {
@@ -63,6 +68,21 @@ public class CustomCombat : MonoBehaviour
             {
                 StartAttackSequence();
             }
+        }
+    }
+
+    private void DetectInputDevice()
+    {
+        // Si la souris bouge → clavier/souris
+        if (Input.GetAxis("Mouse X") != 0 || Input.GetAxis("Mouse Y") != 0)
+        {
+            usingGamepad = false;
+        }
+
+        // Si le stick gauche bouge → manette
+        if (Mathf.Abs(Input.GetAxis("Horizontal")) > 0.1f || Mathf.Abs(Input.GetAxis("Vertical")) > 0.1f)
+        {
+            usingGamepad = true;
         }
     }
 
@@ -97,8 +117,13 @@ public class CustomCombat : MonoBehaviour
             animator.SetTrigger($"Hit {currentHit}");
             comboStep = (comboStep + 1) % 2;
 
-            Quaternion targetRot = Quaternion.LookRotation(lastMouseDirection);
-            rb.MoveRotation(targetRot);
+            // Applique uniquement la rotation si souris utilisée
+            if (!usingGamepad)
+            {
+                Quaternion targetRot = Quaternion.LookRotation(lastMouseDirection);
+                rb.MoveRotation(targetRot);
+            }
+
             yield return new WaitForFixedUpdate();
 
             float endDash = Time.time + attackDashTime;
@@ -108,17 +133,12 @@ public class CustomCombat : MonoBehaviour
                 yield return new WaitForFixedUpdate();
             }
 
-            // VFX avec rotation -30° sur Y
-            if (attackVFXPrefabs[currentHit-1] && vfxSpawnPoint)
+            if (attackVFXPrefabs[currentHit - 1] && vfxSpawnPoint)
             {
                 yield return new WaitForSeconds(0.1f);
-                Quaternion rotationOffset = Quaternion.Euler(0, -30f, 0);
-                Quaternion finalRotation = rotationOffset * Quaternion.LookRotation(transform.forward);
-                Instantiate(attackVFXPrefabs[currentHit-1], vfxSpawnPoint.position, finalRotation);
-                
+                Instantiate(attackVFXPrefabs[currentHit - 1], vfxSpawnPoint.position, Quaternion.LookRotation(transform.forward));
             }
 
-            // Son de l'attaque
             if (attackSFX != null)
             {
                 audioSource.PlayOneShot(attackSFX);

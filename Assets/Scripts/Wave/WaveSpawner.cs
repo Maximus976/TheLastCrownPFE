@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Cinemachine;
 
 public class WaveSpawner : MonoBehaviour
 {
@@ -31,6 +32,9 @@ public class WaveSpawner : MonoBehaviour
     public float descenteDistance = 2f;
     public float descenteDuree = 1f;
 
+    [Header("Caméra par défaut (pour revenir après les vagues)")]
+    public CinemachineVirtualCamera defaultCamera;
+
     public void StartFirstWave()
     {
         if (!waveInProgress && currentWaveIndex == 0)
@@ -50,11 +54,19 @@ public class WaveSpawner : MonoBehaviour
 
         foreach (EnemySpawn enemySpawn in wave.enemiesToSpawn)
         {
+            if (enemySpawn.spawnPoints.Length < enemySpawn.count)
+            {
+                Debug.LogError($"Pas assez de spawn points pour {enemySpawn.enemyPrefab.name}. Points : {enemySpawn.spawnPoints.Length}, ennemis : {enemySpawn.count}");
+                yield break;
+            }
+
+            List<Transform> shuffledPoints = new List<Transform>(enemySpawn.spawnPoints);
+            Shuffle(shuffledPoints);
+
             for (int i = 0; i < enemySpawn.count; i++)
             {
-                Transform spawnPoint = enemySpawn.spawnPoints[Random.Range(0, enemySpawn.spawnPoints.Length)];
+                Transform spawnPoint = shuffledPoints[i];
                 GameObject enemy = Instantiate(enemySpawn.enemyPrefab, spawnPoint.position, spawnPoint.rotation);
-
                 currentEnemies.Add(enemy);
 
                 EnemyMovement movement = enemy.GetComponentInChildren<EnemyMovement>();
@@ -84,6 +96,12 @@ public class WaveSpawner : MonoBehaviour
         {
             Debug.Log("Toutes les vagues sont terminées ! Descente des objets...");
 
+            // Retour à la caméra par défaut
+            if (defaultCamera != null)
+            {
+                defaultCamera.Priority = 20;
+            }
+
             foreach (Transform obj in objetsADescendre)
             {
                 if (obj != null)
@@ -111,6 +129,17 @@ public class WaveSpawner : MonoBehaviour
             yield return null;
         }
 
-        obj.position = end; // forcer la position finale
+        obj.position = end;
+    }
+
+    private void Shuffle<T>(List<T> list)
+    {
+        for (int i = 0; i < list.Count; i++)
+        {
+            int randomIndex = Random.Range(i, list.Count);
+            T temp = list[i];
+            list[i] = list[randomIndex];
+            list[randomIndex] = temp;
+        }
     }
 }
