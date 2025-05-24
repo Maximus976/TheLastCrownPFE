@@ -1,4 +1,4 @@
-using System.Collections;
+Ôªøusing System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Cinemachine;
@@ -21,25 +21,32 @@ public class WaveSpawner : MonoBehaviour
         public List<EnemySpawn> enemiesToSpawn;
     }
 
+    [System.Serializable]
+    public class ObjetDescente
+    {
+        public Transform objet;
+        public CinemachineVirtualCamera camera;
+    }
+
     public List<Wave> waves;
     private int currentWaveIndex = 0;
     private bool waveInProgress = false;
 
     private List<GameObject> currentEnemies = new List<GameObject>();
 
-    [Header("Objets ‡ faire descendre aprËs la derniËre vague")]
-    public List<Transform> objetsADescendre;
+    [Header("Objets √† faire descendre et leur cam√©ra")]
+    public List<ObjetDescente> objetsADescendre;
     public float descenteDistance = 2f;
     public float descenteDuree = 1f;
 
-    [Header("CamÈra par dÈfaut (pour revenir aprËs les vagues)")]
+    [Header("Cam√©ra par d√©faut (gameplay)")]
     public CinemachineVirtualCamera defaultCamera;
 
     public void StartFirstWave()
     {
         if (!waveInProgress && currentWaveIndex == 0)
         {
-            Debug.Log("DÈclenchement de la premiËre vague");
+            Debug.Log("D√©clenchement de la premi√®re vague");
             StartCoroutine(SpawnWave(currentWaveIndex));
         }
     }
@@ -79,10 +86,10 @@ public class WaveSpawner : MonoBehaviour
             }
         }
 
-        Debug.Log("Attente que tous les ennemis de la vague soient ÈliminÈs...");
+        Debug.Log("Attente que tous les ennemis de la vague soient √©limin√©s...");
         yield return new WaitUntil(() => TousLesEnnemisElimines());
 
-        Debug.Log($"Vague {waveIndex + 1} terminÈe.");
+        Debug.Log($"Vague {waveIndex + 1} termin√©e.");
 
         currentWaveIndex++;
         waveInProgress = false;
@@ -94,19 +101,36 @@ public class WaveSpawner : MonoBehaviour
         }
         else
         {
-            Debug.Log("Toutes les vagues sont terminÈes ! Descente des objets...");
+            Debug.Log("Toutes les vagues sont termin√©es !");
 
-            // Retour ‡ la camÈra par dÈfaut
-            if (defaultCamera != null)
+            foreach (var objDescente in objetsADescendre)
             {
-                defaultCamera.Priority = 20;
+                // Active la cam√©ra de l'objet
+                if (objDescente.camera != null)
+                    objDescente.camera.Priority = 20;
+
+                // Baisse la priorit√© de la cam√©ra par d√©faut
+                if (defaultCamera != null)
+                    defaultCamera.Priority = 10;
+
+                yield return new WaitForSeconds(1f);
+
+                if (objDescente.objet != null)
+                    yield return StartCoroutine(FaireDescendreObjet(objDescente.objet));
+
+                yield return new WaitForSeconds(0.5f); // petit d√©lai entre les objets
+
+                // R√©active la cam√©ra principale
+                if (defaultCamera != null)
+                    defaultCamera.Priority = 20;
+
+                if (objDescente.camera != null)
+                    objDescente.camera.Priority = 10;
+
+                yield return new WaitForSeconds(0.5f);
             }
 
-            foreach (Transform obj in objetsADescendre)
-            {
-                if (obj != null)
-                    StartCoroutine(FaireDescendreObjet(obj));
-            }
+            Debug.Log("Toutes les portes ont √©t√© ouvertes.");
         }
     }
 
