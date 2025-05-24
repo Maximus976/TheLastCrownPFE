@@ -326,6 +326,11 @@ PrefabInstance:
       objectReference: {fileID: 9100000, guid: e00907ccf6b1d0f4aa39b7315051dc82, type: 2}
     - target: {fileID: 5866666021909216657, guid: 16e0a85bce193c542975a1dcc250b8ea,
         type: 3}
+      propertyPath: m_CullingMode
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5866666021909216657, guid: 16e0a85bce193c542975a1dcc250b8ea,
+        type: 3}
       propertyPath: m_WarningMessage
       value: "\nBinding warning: Some generic clip(s) animate transforms that are
         already bound by a Humanoid avatar. These transforms can only be changed
@@ -467,7 +472,7 @@ Rigidbody:
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
   m_UseGravity: 1
-  m_IsKinematic: 0
+  m_IsKinematic: 1
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
@@ -510,7 +515,6 @@ MonoBehaviour:
     type: 3}
   firePoint: {fileID: 2849645614246010081}
   projectileSpeed: 10
-  player: {fileID: 0}
   meshRenderer: {fileID: 487371189357016805}
   flashColor: {r: 1, g: 1, b: 1, a: 1}
   flashDuration: 0.1

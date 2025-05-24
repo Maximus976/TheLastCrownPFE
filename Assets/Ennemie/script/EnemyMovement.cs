@@ -10,7 +10,6 @@ public class EnemyMovement : MonoBehaviour
 
     [Header("Detection Settings")]
     [SerializeField] private float detectionRange = 8f;
-    [SerializeField] private Transform player;
 
     [Header("Movement")]
     [SerializeField] private float chaseSpeed = 4f;
@@ -38,6 +37,7 @@ public class EnemyMovement : MonoBehaviour
     private NavMeshAgent agent;
     private Animator animator;
     private Vector3 initialPosition;
+    private Transform playerTarget;
 
     private float patrolCooldown;
     private bool isWaiting = false;
@@ -45,6 +45,7 @@ public class EnemyMovement : MonoBehaviour
     private float attackTimer = 0f;
     private bool isDead = false;
     private bool isStunned = false;
+    private bool canMove = true;
 
     private Coroutine stunCoroutine;
 
@@ -54,18 +55,28 @@ public class EnemyMovement : MonoBehaviour
         animator = GetComponent<Animator>();
         initialPosition = transform.position;
 
+        playerTarget = GameObject.FindGameObjectWithTag("Player")?.transform;
+        if (playerTarget == null)
+        {
+            Debug.LogError("Aucun objet avec le tag 'Player' trouvé pour EnemyMovement.");
+            enabled = false;
+            return;
+        }
+
         agent.autoBraking = false;
         agent.acceleration = 100f;
         agent.angularSpeed = 999f;
+        agent.updatePosition = false;
+        agent.updateRotation = false;
 
-        animator.SetInteger("HitType", 0); // Init safe
+        animator.SetInteger("HitType", 0);
     }
 
     void Update()
     {
-        if (isDead || isStunned) return;
+        if (isDead || isStunned || playerTarget == null || !canMove) return;
 
-        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+        float distanceToPlayer = Vector3.Distance(transform.position, playerTarget.position);
         attackTimer -= Time.deltaTime;
 
         if (distanceToPlayer <= detectionRange)
@@ -73,8 +84,12 @@ public class EnemyMovement : MonoBehaviour
             if (distanceToPlayer > stopDistance)
             {
                 isAttacking = false;
-                if (agent.isOnNavMesh) agent.isStopped = false;
-                ChasePlayer();
+                if (agent.isOnNavMesh)
+                {
+                    agent.isStopped = false;
+                    agent.speed = chaseSpeed;
+                    agent.SetDestination(playerTarget.position);
+                }
             }
             else if (attackTimer <= 0f && !isAttacking)
             {
@@ -86,7 +101,19 @@ public class EnemyMovement : MonoBehaviour
             Patrol();
         }
 
-        animator.SetFloat("Speed", agent.velocity.magnitude);
+        if (agent.isOnNavMesh && canMove)
+        {
+            transform.position = agent.nextPosition;
+
+            Vector3 velocity = agent.desiredVelocity;
+            if (velocity != Vector3.zero)
+            {
+                Quaternion toRot = Quaternion.LookRotation(velocity);
+                transform.rotation = Quaternion.Slerp(transform.rotation, toRot, Time.deltaTime * 10f);
+            }
+        }
+
+        animator.SetFloat("Speed", isDead ? 0f : agent.velocity.magnitude);
     }
 
     void StartAttack()
@@ -95,7 +122,7 @@ public class EnemyMovement : MonoBehaviour
         if (agent.isOnNavMesh) agent.isStopped = true;
         agent.velocity = Vector3.zero;
 
-        Vector3 dir = (player.position - transform.position).normalized;
+        Vector3 dir = (playerTarget.position - transform.position).normalized;
         dir.y = 0;
         if (dir != Vector3.zero) transform.forward = dir;
 
@@ -106,9 +133,9 @@ public class EnemyMovement : MonoBehaviour
 
     void DealDamage()
     {
-        if (Vector3.Distance(transform.position, player.position) <= stopDistance + 0.5f)
+        if (Vector3.Distance(transform.position, playerTarget.position) <= stopDistance + 0.5f)
         {
-            Health targetHealth = player.GetComponent<Health>();
+            Health targetHealth = playerTarget.GetComponent<Health>();
             if (targetHealth != null)
             {
                 targetHealth.TakeDamage(damage);
@@ -117,15 +144,6 @@ public class EnemyMovement : MonoBehaviour
 
         isAttacking = false;
         if (agent.isOnNavMesh) agent.isStopped = false;
-    }
-
-    private void ChasePlayer()
-    {
-        if (agent.isOnNavMesh)
-        {
-            agent.speed = chaseSpeed;
-            agent.SetDestination(player.position);
-        }
     }
 
     private void Patrol()
@@ -174,15 +192,13 @@ public class EnemyMovement : MonoBehaviour
         if (isDead) return;
 
         isStunned = true;
-
         FlashRed();
 
-        int hitType = Random.Range(1, 3); // 1 = static, 2 = knockback
+        int hitType = Random.Range(1, 3);
         animator.SetInteger("HitType", hitType);
-        animator.Update(0); // force l’Animator à lire le paramètre
-        animator.SetInteger("HitType", 0); // reset pour permettre réenclenchement
+        animator.Update(0);
+        animator.SetInteger("HitType", 0);
 
-        // Stop précédent stun s’il est encore actif
         if (stunCoroutine != null)
             StopCoroutine(stunCoroutine);
 
@@ -263,29 +279,36 @@ public class EnemyMovement : MonoBehaviour
     {
         if (isDead) return;
         isDead = true;
+        canMove = false;
 
+        // Arrête le NavMeshAgent
         if (agent.isOnNavMesh)
         {
             agent.ResetPath();
             agent.isStopped = true;
-            agent.updatePosition = false;
-            agent.updateRotation = false;
         }
 
+        // ❌ Désactive le NavMeshAgent complètement
+        agent.enabled = false;
+
+        // Bloque les mouvements physiques
         Rigidbody rb = GetComponent<Rigidbody>();
         if (rb)
         {
             rb.isKinematic = true;
             rb.velocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
+            rb.constraints = RigidbodyConstraints.FreezeAll;
         }
 
+        // Désactive le collider
+        Collider col = GetComponent<Collider>();
+        if (col) col.enabled = false;
+
+        // Joue une animation de mort
         int randomDeath = Random.Range(0, 4);
         animator.SetInteger("DeathIndex", randomDeath);
         animator.SetTrigger("Die");
-
-        Collider col = GetComponent<Collider>();
-        if (col) col.enabled = false;
     }
 
     private void OnDrawGizmosSelected()
