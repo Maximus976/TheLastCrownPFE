@@ -22,10 +22,10 @@ public class WaveSpawner : MonoBehaviour
     }
 
     [System.Serializable]
-    public class ObjetDescente
+    public class DescenteGroupe
     {
-        public Transform objet;
-        public CinemachineVirtualCamera camera;
+        public Transform[] objets; // Objets à descendre ensemble
+        public CinemachineVirtualCamera camera; // Caméra du groupe
     }
 
     public List<Wave> waves;
@@ -34,12 +34,12 @@ public class WaveSpawner : MonoBehaviour
 
     private List<GameObject> currentEnemies = new List<GameObject>();
 
-    [Header("Objets à faire descendre et leur caméra")]
-    public List<ObjetDescente> objetsADescendre;
+    [Header("Groupes de descente")]
+    public List<DescenteGroupe> groupesDeDescente;
     public float descenteDistance = 2f;
-    public float descenteDuree = 1f;
+    public float descenteDuree = 2f;
 
-    [Header("Caméra par défaut (gameplay)")]
+    [Header("Caméra par défaut")]
     public CinemachineVirtualCamera defaultCamera;
 
     public void StartFirstWave()
@@ -102,35 +102,44 @@ public class WaveSpawner : MonoBehaviour
         else
         {
             Debug.Log("Toutes les vagues sont terminées !");
+            yield return StartCoroutine(DescenteParGroupe());
+            Debug.Log("Tous les objets ont été descendus.");
+        }
+    }
 
-            foreach (var objDescente in objetsADescendre)
+    private IEnumerator DescenteParGroupe()
+    {
+        foreach (var groupe in groupesDeDescente)
+        {
+            // 1. Active la caméra du groupe
+            if (groupe.camera != null)
+                groupe.camera.Priority = 20;
+
+            if (defaultCamera != null)
+                defaultCamera.Priority = 10;
+
+            // 2. Attendre que la caméra prenne effet
+            yield return new WaitForSeconds(0.3f);
+
+            // 3. Lancer la descente de tous les objets
+            List<Coroutine> descentes = new List<Coroutine>();
+            foreach (Transform obj in groupe.objets)
             {
-                // Active la caméra de l'objet
-                if (objDescente.camera != null)
-                    objDescente.camera.Priority = 20;
-
-                // Baisse la priorité de la caméra par défaut
-                if (defaultCamera != null)
-                    defaultCamera.Priority = 10;
-
-                yield return new WaitForSeconds(1f);
-
-                if (objDescente.objet != null)
-                    yield return StartCoroutine(FaireDescendreObjet(objDescente.objet));
-
-                yield return new WaitForSeconds(0.5f); // petit délai entre les objets
-
-                // Réactive la caméra principale
-                if (defaultCamera != null)
-                    defaultCamera.Priority = 20;
-
-                if (objDescente.camera != null)
-                    objDescente.camera.Priority = 10;
-
-                yield return new WaitForSeconds(0.5f);
+                if (obj != null)
+                    descentes.Add(StartCoroutine(FaireDescenteEtAttendre(obj)));
             }
 
-            Debug.Log("Toutes les portes ont été ouvertes.");
+            // 4. Attendre la durée de la descente
+            yield return new WaitForSeconds(descenteDuree);
+
+            // 5. Revenir à la caméra de gameplay
+            if (defaultCamera != null)
+                defaultCamera.Priority = 20;
+
+            if (groupe.camera != null)
+                groupe.camera.Priority = 10;
+
+            yield return new WaitForSeconds(0.3f);
         }
     }
 
@@ -140,7 +149,7 @@ public class WaveSpawner : MonoBehaviour
         return currentEnemies.Count == 0;
     }
 
-    IEnumerator FaireDescendreObjet(Transform obj)
+    IEnumerator FaireDescenteEtAttendre(Transform obj)
     {
         Vector3 start = obj.position;
         Vector3 end = start - new Vector3(0f, descenteDistance, 0f);
