@@ -17,6 +17,9 @@ public class EnemyHealth : MonoBehaviour
     private EnemyMovement standardAI;
     private Animator animator;
 
+    [Header("Boss Settings")]
+    [SerializeField] private bool isBoss = false; // ✅ À cocher dans l'Inspector pour le boss
+
     private void Start()
     {
         currentHealth = maxHealth;
@@ -62,7 +65,6 @@ public class EnemyHealth : MonoBehaviour
             animator.SetTrigger("Die");
         }
 
-        // Désactive NavMeshAgent ici (facultatif si déjà fait ailleurs)
         NavMeshAgent agent = GetComponent<NavMeshAgent>();
         if (agent != null)
         {
@@ -83,15 +85,20 @@ public class EnemyHealth : MonoBehaviour
         Collider col = GetComponent<Collider>();
         if (col != null) col.enabled = false;
 
-        // ✅ Appelle bien la méthode Die() de EnemyMovement
         if (standardAI != null)
         {
-            standardAI.Die(); // <- cette ligne est essentielle
+            standardAI.Die();
+        }
+
+        // ✅ Si c’est un boss, on lance la séquence de fin
+        if (isBoss)
+        {
+            Debug.Log("Boss vaincu – lancement de la séquence de fin");
+            FindObjectOfType<FinNarrative>()?.StartFinSequence();
         }
 
         StartCoroutine(DelayedCleanup());
     }
-
 
     private void UpdateHealthBar()
     {
