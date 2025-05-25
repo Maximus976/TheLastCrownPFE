@@ -146,7 +146,7 @@ Material:
     - _BaseColor: {r: 0.07058818, g: 0.6509804, b: 0.10980392, a: 1}
     - _BottomColor: {r: 0, g: 0.70440245, b: 0.68722194, a: 0}
     - _Color: {r: 0.070588164, g: 0.6509804, b: 0.10980389, a: 1}
-    - _Color_Camera_Position: {r: -242.00548, g: 123.115715, b: 0, a: 0}
+    - _Color_Camera_Position: {r: -230.93114, g: 65.527855, b: 0, a: 0}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _FarColor: {r: 0, g: 1, b: 0.22535205, a: 0}
     - _NearColor: {r: 0.1898585, g: 0.4339623, b: 0, a: 0}

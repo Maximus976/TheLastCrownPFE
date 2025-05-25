@@ -17,13 +17,16 @@ public class EnemyHealth : MonoBehaviour
     private EnemyMovement standardAI;
     private Animator animator;
 
+    [Header("Boss Settings")]
+    [SerializeField] private bool isBoss = false; // À cocher dans l'Inspector pour le boss
+
     private void Start()
     {
         currentHealth = maxHealth;
         UpdateHealthBar();
 
         mage = GetComponent<MageEnemy>();
-        standardAI = GetComponent<EnemyMovement>(); // ✅ correction ici
+        standardAI = GetComponent<EnemyMovement>(); // correction ici
         animator = GetComponent<Animator>();
     }
 
@@ -84,7 +87,14 @@ public class EnemyHealth : MonoBehaviour
 
         if (standardAI != null)
         {
-            standardAI.Die(); // ✅ on appelle bien la mort côté AI
+            standardAI.Die();
+        }
+
+        // ✅ Si c’est un boss, on lance la séquence de fin
+        if (isBoss)
+        {
+            Debug.Log("Boss vaincu – lancement de la séquence de fin");
+            FindObjectOfType<FinNarrative>()?.StartFinSequence();
         }
 
         StartCoroutine(DelayedCleanup());
