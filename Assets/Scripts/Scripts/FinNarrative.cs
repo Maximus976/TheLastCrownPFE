@@ -12,112 +12,109 @@ public class FinNarrative : MonoBehaviour
     {
         [TextArea] public string[] lines;
         public float duration = 8f;
-        public string position = "Middle"; // "Top", "Middle", "Bottom"
     }
 
     public List<TextSequence> sequences = new List<TextSequence>();
 
     public GameObject textPrefab;
-    public Transform topContainer;
-    public Transform middleContainer;
-    public Transform bottomContainer;
-
+    public Transform textContainer;
     public GameObject creditsPanel;
     public GameObject finText;
     public CanvasGroup panelFader;
 
-    public string playerTag = "Player";
     public float fadeDuration = 2f;
     public string mainMenuSceneName = "Menu";
 
-    private MonoBehaviour playerMovementScript;
-
-    void Start()
+    private void Start()
     {
         creditsPanel.SetActive(false);
         finText.SetActive(false);
         panelFader.alpha = 0f;
-
-        // Trouve et désactive le script de mouvement du joueur
-        GameObject player = GameObject.FindGameObjectWithTag(playerTag);
-        if (player != null)
-        {
-            playerMovementScript = player.GetComponent<MonoBehaviour>(); // Remplace par le vrai nom de ton script si nécessaire
-        }
+        panelFader.gameObject.SetActive(true); // S'assurer qu’il est actif
+        Time.timeScale = 1f;
     }
 
-    public void StartFinSequence()
+    // Appel public, avec délai configurable
+    public void StartFinSequence(float delay = 2f)
     {
-        if (playerMovementScript != null)
-        {
-            playerMovementScript.enabled = false; // désactive le contrôle du joueur
-        }
+        StartCoroutine(DelayedStartFin(delay));
+    }
 
+    private IEnumerator DelayedStartFin(float delay)
+    {
+        yield return new WaitForSeconds(delay);
         StartCoroutine(PlaySequence());
     }
 
     private IEnumerator PlaySequence()
     {
+        // Stop jeu
+        Time.timeScale = 0f;
+
+        // Étape 1 : Fade vers noir
+        yield return StartCoroutine(FadeCanvasGroup(panelFader, 0f, 1f, fadeDuration));
+        yield return StartRealtime(1f); // Pause courte une fois noir
+
+        // Étape 2 : Affichage des séquences de texte
         foreach (var sequence in sequences)
         {
-            // Efface les anciens textes
-            ClearAllContainers();
+            // Supprime les anciens textes
+            foreach (Transform child in textContainer)
+                Destroy(child.gameObject);
 
-            Transform targetContainer = GetTargetContainer(sequence.position);
-            if (targetContainer == null) targetContainer = middleContainer;
-
+            // Crée les nouveaux textes
             foreach (string line in sequence.lines)
             {
-                GameObject textGO = Instantiate(textPrefab, targetContainer);
+                GameObject textGO = Instantiate(textPrefab, textContainer);
                 textGO.SetActive(true);
                 textGO.GetComponent<TextMeshProUGUI>().text = line;
             }
 
-            yield return new WaitForSeconds(sequence.duration);
+            yield return StartRealtime(sequence.duration);
         }
 
-        ClearAllContainers();
+        // Nettoyer les textes
+        foreach (Transform child in textContainer)
+            Destroy(child.gameObject);
 
+        // Étape 3 : Crédits
         creditsPanel.SetActive(true);
-        yield return new WaitForSeconds(8f);
+        yield return StartRealtime(8f);
+        creditsPanel.SetActive(false);
 
+        // Étape 4 : "Fin"
         finText.SetActive(true);
-        yield return new WaitForSeconds(4f);
+        yield return StartRealtime(4f);
 
-        yield return StartCoroutine(FadeCanvasGroup(panelFader, 0f, 1f, fadeDuration));
-        yield return new WaitForSeconds(2f);
-
+        // Étape 5 : Retour au menu
+        yield return StartRealtime(2f);
+        Time.timeScale = 1f;
         SceneManager.LoadScene(mainMenuSceneName);
-    }
-
-    private void ClearAllContainers()
-    {
-        foreach (Transform child in topContainer) Destroy(child.gameObject);
-        foreach (Transform child in middleContainer) Destroy(child.gameObject);
-        foreach (Transform child in bottomContainer) Destroy(child.gameObject);
-    }
-
-    private Transform GetTargetContainer(string position)
-    {
-        switch (position.ToLower())
-        {
-            case "top": return topContainer;
-            case "bottom": return bottomContainer;
-            case "middle":
-            default: return middleContainer;
-        }
     }
 
     private IEnumerator FadeCanvasGroup(CanvasGroup group, float from, float to, float duration)
     {
         float elapsed = 0f;
         group.alpha = from;
+        group.gameObject.SetActive(true);
+
         while (elapsed < duration)
         {
-            elapsed += Time.deltaTime;
+            elapsed += Time.unscaledDeltaTime;
             group.alpha = Mathf.Lerp(from, to, elapsed / duration);
             yield return null;
         }
+
         group.alpha = to;
+    }
+
+    private IEnumerator StartRealtime(float duration)
+    {
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            yield return null;
+        }
     }
 }

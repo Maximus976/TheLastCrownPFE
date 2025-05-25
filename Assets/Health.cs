@@ -75,7 +75,6 @@ public class Health : MonoBehaviour
             Die();
     }
 
-
     public void RestoreHealth(int amount)
     {
         if (isDead) return;
@@ -89,6 +88,33 @@ public class Health : MonoBehaviour
     {
         if (healthBarFill != null)
             healthBarFill.fillAmount = (float)currentHealth / maxHealth;
+    }
+    public void ResetDeathState()
+    {
+        isDead = false;
+        currentHealth = maxHealth;
+        UpdateHealthBar();
+
+        // Réactive les scripts désactivés à la mort
+        foreach (var script in scriptsToDisableOnDeath)
+        {
+            if (script != null)
+                script.enabled = true;
+        }
+
+        // Réactive le HUD
+        if (hudUI != null)
+            hudUI.SetActive(true);
+
+        // Reset de l'animator
+        if (animator != null)
+        {
+            animator.ResetTrigger("Die");
+            animator.SetInteger("DieType", 0);
+            animator.Play("Idle"); // Remplace "Idle" par ton animation par défaut de base
+        }
+
+        Debug.Log("[Health] État de mort réinitialisé.");
     }
 
     private IEnumerator VignetteFadeLogic()
@@ -116,7 +142,6 @@ public class Health : MonoBehaviour
             {
                 vignette.intensity.value = targetIntensity;
                 vignette.smoothness.value = 1f;
-                // couleur laissée libre (pas forcée à rouge)
             }
 
             yield return null;
@@ -169,7 +194,6 @@ public class Health : MonoBehaviour
         {
             if (script != null)
                 script.enabled = false;
-
         }
 
         StartCoroutine(DelayedGameOver());
@@ -179,7 +203,23 @@ public class Health : MonoBehaviour
     {
         yield return new WaitForSeconds(2f);
 
-        if (menuMort != null)
-            menuMort.ActiverMenuMort();
+        // ✅ Respawn si un checkpoint est défini
+        Chekpoint.Instance.RespawnPlayer(gameObject);
+
+        // ✅ Réinitialiser la vie et les états
+        currentHealth = maxHealth;
+        isDead = false;
+
+        if (hudUI != null)
+            hudUI.SetActive(true);
+
+        foreach (var script in scriptsToDisableOnDeath)
+        {
+            if (script != null)
+                script.enabled = true;
+        }
+
+        animator.SetTrigger("Respawn");
+        UpdateHealthBar();
     }
 }

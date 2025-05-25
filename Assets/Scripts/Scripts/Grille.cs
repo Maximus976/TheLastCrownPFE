@@ -9,9 +9,14 @@ public class Grille : MonoBehaviour
     public Vector3[] positionsOuvertes;
     public float vitesse = 2f;
 
+    [Header("Audio")]
+    public AudioSource audioSource;
+    public AudioClip clipOuverture;
+
     private Vector3[] destinations;
     private bool enMouvement = false;
     private bool estOuverte = false;
+    private bool aDÈj‡Ouvert = false;
     private Collider[] colliders;
 
     void Start()
@@ -30,6 +35,7 @@ public class Grille : MonoBehaviour
         }
 
         estOuverte = false;
+        aDÈj‡Ouvert = false;
     }
 
     void Update()
@@ -56,30 +62,23 @@ public class Grille : MonoBehaviour
             {
                 enMouvement = false;
 
-                // DÈsactiver les colliders si ouverte
-                if (estOuverte)
-                {
-                    foreach (Collider col in colliders)
-                        col.enabled = false;
-                }
-                else
-                {
-                    foreach (Collider col in colliders)
-                        col.enabled = true;
-                }
+                // DÈsactiver les colliders si grille ouverte
+                foreach (Collider col in colliders)
+                    col.enabled = !estOuverte;
             }
         }
     }
 
-    // Fonction ‡ appeler depuis un levier
+    // Appel depuis un levier ou un trigger
     public void ActiverGrille()
     {
         if (enMouvement) return;
 
-        if (estOuverte)
-            FermerGrille();
-        else
+        if (!estOuverte && !aDÈj‡Ouvert)
+        {
             OuvrirGrille();
+        }
+        // Sinon, ne fait rien (empÍche la fermeture aprËs ouverture)
     }
 
     public void OuvrirGrille()
@@ -91,16 +90,11 @@ public class Grille : MonoBehaviour
 
         enMouvement = true;
         estOuverte = true;
-    }
+        aDÈj‡Ouvert = true;
 
-    public void FermerGrille()
-    {
-        for (int i = 0; i < barreaux.Length; i++)
+        if (audioSource != null && clipOuverture != null)
         {
-            destinations[i] = positionsFermees[i];
+            audioSource.PlayOneShot(clipOuverture);
         }
-
-        enMouvement = true;
-        estOuverte = false;
     }
 }

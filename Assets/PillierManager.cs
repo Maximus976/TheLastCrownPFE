@@ -6,11 +6,14 @@ using UnityEngine.UI;
 
 public class pilliiermanager : MonoBehaviour
 {
+
     public Pillar[] pillars;
     public GameObject[] symbolsToAffect;
     public Animator doorAnimator;
     public string openDoorTriggerName = "Open";
     public GameObject[] symbolsToActivate;
+    public AudioSource doorOpenSound; // ?? Ajout de l'AudioSource pour le son de la porte
+
     private bool isMoving = false;
     public bool IsPuzzleSolved { get; private set; } = false;
 
@@ -64,6 +67,7 @@ public class pilliiermanager : MonoBehaviour
 
     private void OnPuzzleSolved()
     {
+        // Active les symboles
         Color emissionColor;
         if (!ColorUtility.TryParseHtmlString("#00F7FF", out emissionColor))
         {
@@ -81,9 +85,13 @@ public class pilliiermanager : MonoBehaviour
                 mat.SetColor("_EmissionColor", emissionColor * 2f);
             }
         }
-    
 
+        // Déclenche l'animation de la porte
         if (doorAnimator != null)
             doorAnimator.SetTrigger(openDoorTriggerName);
+
+        // ?? Joue le son d’ouverture de porte
+        if (doorOpenSound != null)
+            doorOpenSound.Play();
     }
 }

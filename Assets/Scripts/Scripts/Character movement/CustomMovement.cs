@@ -16,6 +16,13 @@ public class CustomMovement : MonoBehaviour
     [SerializeField] private float dashCooldown = 1f;
     [SerializeField] private float dashRecoveryTime = 0.3f;
 
+    [Header("Footstep Sounds")]
+    [SerializeField] private AudioSource footstepSource;
+    [SerializeField] private AudioClip walkFootstep;
+    [SerializeField] private AudioClip runFootstep;
+    [SerializeField] private float walkStepRate = 0.6f;
+    [SerializeField] private float runStepRate = 0.35f;
+
     public Animator animator;
 
     private bool isSprinting = false;
@@ -31,6 +38,8 @@ public class CustomMovement : MonoBehaviour
     private bool wasHoldingMovement = false;
     private float inputTapTimer = 0f;
     private float tapDuration = 0.1f;
+
+    private float footstepTimer = 0f;
 
     private CustomCombat combatScript;
 
@@ -156,6 +165,22 @@ public class CustomMovement : MonoBehaviour
         animator.SetFloat("StrafeDirectionX", smoothedDir.x);
         animator.SetFloat("StrafeDirectionZ", smoothedDir.z);
         animator.SetFloat("IsStrafing", 1f);
+
+        HandleFootsteps(holdingMovement, isSprinting);
+    }
+
+    private void HandleFootsteps(bool isMoving, bool isSprinting)
+    {
+        if (!isMoving || isDashing || combatScript.IsAttacking) return;
+
+        footstepTimer -= Time.deltaTime;
+        if (footstepTimer <= 0f)
+        {
+            footstepSource.clip = isSprinting ? runFootstep : walkFootstep;
+            footstepSource.Play();
+
+            footstepTimer = isSprinting ? runStepRate : walkStepRate;
+        }
     }
 
     private IEnumerator PerformDash()
