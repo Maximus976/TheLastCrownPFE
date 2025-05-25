@@ -235,16 +235,25 @@ public class MageEnemy : MonoBehaviour
 
     private void Attack()
     {
-        if (projectilePrefab == null || firePoint == null) return;
+        if (projectilePrefab == null || firePoint == null || target == null) return;
 
-        Vector3 dir = (target.position + Vector3.up) - firePoint.position;
-        Quaternion lookRotation = Quaternion.LookRotation(dir);
-        Quaternion correction = Quaternion.Euler(0, -90, 0);
-        Quaternion finalRotation = lookRotation * correction;
+        // Calcul de la direction au moment du tir
+        Vector3 direction = (target.position - firePoint.position).normalized;
 
-        GameObject projectile = Instantiate(projectilePrefab, firePoint.position, finalRotation);
-        projectile.GetComponent<Rigidbody>().velocity = dir.normalized * projectileSpeed;
+        // Position légèrement décalée vers l'avant pour éviter de toucher le mage
+        Vector3 spawnPos = firePoint.position + direction * 0.5f;
 
+        // Instanciation du projectile orienté dans la bonne direction
+        GameObject projectile = Instantiate(projectilePrefab, spawnPos, Quaternion.LookRotation(direction));
+
+        // Initialisation de la trajectoire et des dégâts
+        Projectile proj = projectile.GetComponent<Projectile>();
+        if (proj != null)
+        {
+            proj.Initialize(direction, projectileSpeed, 10); // Remplace 10 par une variable si besoin
+        }
+
+        // Animation d'attaque
         lastAttackTime = Time.time;
 
         if (animator != null)
@@ -254,6 +263,7 @@ public class MageEnemy : MonoBehaviour
             animator.SetInteger("HitTypeMage", 0);
         }
     }
+
 
     public void ReceiveHit()
     {

@@ -4875,7 +4875,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3735903179841953996}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0.70710665, z: -0, w: 0.70710695}
   m_LocalPosition: {x: 0.28, y: 0, z: 0}
   m_LocalScale: {x: 0.7, y: 0.7, z: 0.7}
   m_ConstrainProportionsScale: 0
@@ -4883,7 +4883,7 @@ Transform:
   - {fileID: 1188392368406624479}
   - {fileID: 3432139385560566807}
   m_Father: {fileID: 4950055640725342317}
-  m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -90, z: 0}
 --- !u!198 &9115835220553781705
 ParticleSystem:
   m_ObjectHideFlags: 0
@@ -14533,7 +14533,6 @@ GameObject:
   - component: {fileID: 8680406900719599098}
   - component: {fileID: 8343467134040584894}
   - component: {fileID: 6161135368762584909}
-  - component: {fileID: 6304729628308935591}
   m_Layer: 0
   m_Name: VFX_FireBall
   m_TagString: Untagged
@@ -14550,7 +14549,7 @@ Transform:
   m_GameObject: {fileID: 8928233154074331985}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0.7071065, z: -0, w: 0.7071071}
-  m_LocalPosition: {x: 25.595314, y: -3.255511, z: -13.833237}
+  m_LocalPosition: {x: 19.05, y: -3.255511, z: -13.83}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -14617,19 +14616,3 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1c48cf7d5d3f2b040b2194d13b74c9ad, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &6304729628308935591
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8928233154074331985}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53eda9f6749468044922f89c12ec0ac4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  lifeTime: 2
-  damage: 10
-  ignoreTags:
-  - Ennemi

@@ -23,7 +23,7 @@ public class EnemyHealth : MonoBehaviour
         UpdateHealthBar();
 
         mage = GetComponent<MageEnemy>();
-        standardAI = GetComponentInChildren<EnemyMovement>();
+        standardAI = GetComponent<EnemyMovement>(); // ✅ correction ici
         animator = GetComponent<Animator>();
     }
 
@@ -62,7 +62,6 @@ public class EnemyHealth : MonoBehaviour
             animator.SetTrigger("Die");
         }
 
-        // Désactive NavMeshAgent ici (facultatif si déjà fait ailleurs)
         NavMeshAgent agent = GetComponent<NavMeshAgent>();
         if (agent != null)
         {
@@ -83,15 +82,13 @@ public class EnemyHealth : MonoBehaviour
         Collider col = GetComponent<Collider>();
         if (col != null) col.enabled = false;
 
-        // ✅ Appelle bien la méthode Die() de EnemyMovement
         if (standardAI != null)
         {
-            standardAI.Die(); // <- cette ligne est essentielle
+            standardAI.Die(); // ✅ on appelle bien la mort côté AI
         }
 
         StartCoroutine(DelayedCleanup());
     }
-
 
     private void UpdateHealthBar()
     {

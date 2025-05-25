@@ -1,33 +1,39 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class Projectile : MonoBehaviour
 {
-    private Vector3 targetPosition;
+    private Vector3 moveDirection;
     private float speed;
     private int damage;
 
-    public void Initialize(Vector3 target, float projectileSpeed, int projectileDamage)
+    public void Initialize(Vector3 direction, float projectileSpeed, int projectileDamage)
     {
-        targetPosition = target;
+        moveDirection = direction.normalized;
         speed = projectileSpeed;
         damage = projectileDamage;
-        Destroy(gameObject, 5f); // auto-destroy apr�s 5s
+
+        Destroy(gameObject, 5f); // Auto-destruction si rien touché
     }
 
     private void Update()
     {
-        Vector3 dir = (targetPosition - transform.position).normalized;
-        transform.position += dir * speed * Time.deltaTime;
+        transform.position += moveDirection * speed * Time.deltaTime;
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        Health health = other.GetComponent<Health>();
-        if (health != null)
+        if (other.CompareTag("Player"))
         {
-            health.TakeDamage(damage);
+            Health health = other.GetComponent<Health>();
+            if (health != null)
+            {
+                health.TakeDamage(damage);
+            }
+
+            Destroy(gameObject);
+        }
+        else if (other.CompareTag("Wall"))
+        {
             Destroy(gameObject);
         }
     }

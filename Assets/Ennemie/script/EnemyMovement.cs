@@ -24,16 +24,6 @@ public class EnemyMovement : MonoBehaviour
     [SerializeField] private float attackCooldown = 1.5f;
     [SerializeField] private float attackDelay = 0.5f;
 
-    [Header("Hit Reaction")]
-    [SerializeField] private float hitStunDuration = 0.2f;
-    [SerializeField] private float knockbackForce = 2f;
-    [SerializeField] private float knockbackTime = 0.15f;
-
-    [Header("Feedback")]
-    [SerializeField] private Renderer[] renderersToFlash;
-    [SerializeField] private Color flashColor = Color.white;
-    [SerializeField] private float flashDuration = 0.1f;
-
     private NavMeshAgent agent;
     private Animator animator;
     private Vector3 initialPosition;
@@ -55,14 +45,6 @@ public class EnemyMovement : MonoBehaviour
         animator = GetComponent<Animator>();
         initialPosition = transform.position;
 
-        playerTarget = GameObject.FindGameObjectWithTag("Player")?.transform;
-        if (playerTarget == null)
-        {
-            Debug.LogError("Aucun objet avec le tag 'Player' trouvé pour EnemyMovement.");
-            enabled = false;
-            return;
-        }
-
         agent.autoBraking = false;
         agent.acceleration = 100f;
         agent.angularSpeed = 999f;
@@ -74,7 +56,10 @@ public class EnemyMovement : MonoBehaviour
 
     void Update()
     {
-        if (isDead || isStunned || playerTarget == null || !canMove) return;
+        if (isDead || isStunned || !canMove) return;
+
+        playerTarget = FindClosestPlayer();
+        if (playerTarget == null) return;
 
         float distanceToPlayer = Vector3.Distance(transform.position, playerTarget.position);
         attackTimer -= Time.deltaTime;
@@ -83,6 +68,7 @@ public class EnemyMovement : MonoBehaviour
         {
             if (distanceToPlayer > stopDistance)
             {
+                // Toujours en chasse
                 isAttacking = false;
                 if (agent.isOnNavMesh)
                 {
@@ -91,15 +77,23 @@ public class EnemyMovement : MonoBehaviour
                     agent.SetDestination(playerTarget.position);
                 }
             }
-            else if (attackTimer <= 0f && !isAttacking)
+            else
             {
-                StartAttack();
+                // Trop proche -> arrêt
+                if (agent.isOnNavMesh)
+                {
+                    agent.isStopped = true;
+                    agent.velocity = Vector3.zero;
+                }
+
+                // Peut attaquer si cooldown terminé
+                if (attackTimer <= 0f && !isAttacking)
+                {
+                    StartAttack();
+                }
             }
         }
-        else
-        {
-            Patrol();
-        }
+
 
         if (agent.isOnNavMesh && canMove)
         {
@@ -113,7 +107,26 @@ public class EnemyMovement : MonoBehaviour
             }
         }
 
-        animator.SetFloat("Speed", isDead ? 0f : agent.velocity.magnitude);
+        animator.SetFloat("Speed", isDead ? 0f : agent.velocity.magnitude, 0.1f, Time.deltaTime);
+    }
+
+    Transform FindClosestPlayer()
+    {
+        GameObject[] players = GameObject.FindGameObjectsWithTag("Player");
+        float closestDistance = Mathf.Infinity;
+        Transform closest = null;
+
+        foreach (GameObject player in players)
+        {
+            float dist = Vector3.Distance(transform.position, player.transform.position);
+            if (dist < closestDistance)
+            {
+                closestDistance = dist;
+                closest = player.transform;
+            }
+        }
+
+        return closest;
     }
 
     void StartAttack()
@@ -124,22 +137,34 @@ public class EnemyMovement : MonoBehaviour
 
         Vector3 dir = (playerTarget.position - transform.position).normalized;
         dir.y = 0;
-        if (dir != Vector3.zero) transform.forward = dir;
+        if (dir != Vector3.zero)
+        {
+            Quaternion toRot = Quaternion.LookRotation(dir);
+            transform.rotation = Quaternion.Slerp(transform.rotation, toRot, Time.deltaTime * 15f);
+        }
 
         animator.SetTrigger("Attack");
-        Invoke(nameof(DealDamage), attackDelay);
+
+        Invoke(nameof(ApplyDamageToPlayer), attackDelay);
+
         attackTimer = attackCooldown;
     }
 
-    void DealDamage()
+    void ApplyDamageToPlayer()
     {
-        if (Vector3.Distance(transform.position, playerTarget.position) <= stopDistance + 0.5f)
+        if (playerTarget == null) return;
+
+        float distance = Vector3.Distance(transform.position, playerTarget.position);
+        if (distance > stopDistance + 0.5f) return;
+
+        Health health = playerTarget.GetComponent<Health>();
+        if (health == null)
+            health = playerTarget.GetComponentInParent<Health>();
+
+        if (health != null)
         {
-            Health targetHealth = playerTarget.GetComponent<Health>();
-            if (targetHealth != null)
-            {
-                targetHealth.TakeDamage(damage);
-            }
+            health.TakeDamage(damage);
+            Debug.Log($"[Enemy] Dégâts infligés à {playerTarget.name} : {damage}");
         }
 
         isAttacking = false;
@@ -189,90 +214,39 @@ public class EnemyMovement : MonoBehaviour
 
     public void ReactToHit(Vector3 attackerPosition)
     {
-        if (isDead) return;
+        if (isDead || isStunned) return;
 
         isStunned = true;
-        FlashRed();
 
-        int hitType = Random.Range(1, 3);
-        animator.SetInteger("HitType", hitType);
-        animator.Update(0);
-        animator.SetInteger("HitType", 0);
+        Vector3 dir = (transform.position - attackerPosition).normalized;
+        dir.y = 0;
 
         if (stunCoroutine != null)
             StopCoroutine(stunCoroutine);
 
-        stunCoroutine = StartCoroutine(HitReactionRoutine(hitType, attackerPosition));
+        stunCoroutine = StartCoroutine(HitReaction(dir));
     }
 
-    private IEnumerator HitReactionRoutine(int hitType, Vector3 attackerPosition)
+    private IEnumerator HitReaction(Vector3 direction)
     {
-        if (agent.isOnNavMesh) agent.isStopped = true;
+        float knockbackDuration = 0.15f;
+        float timer = 0f;
 
-        if (hitType == 2)
+        if (agent.isOnNavMesh)
+            agent.isStopped = true;
+
+        while (timer < knockbackDuration)
         {
-            Vector3 dir = (transform.position - attackerPosition).normalized;
-            dir.y = 0;
-            float timer = 0f;
-            while (timer < knockbackTime)
-            {
-                agent.Move(dir * knockbackForce * Time.deltaTime);
-                timer += Time.deltaTime;
-                yield return null;
-            }
-        }
-        else
-        {
-            yield return new WaitForSeconds(knockbackTime);
+            transform.position += direction * 2f * Time.deltaTime;
+            timer += Time.deltaTime;
+            yield return null;
         }
 
-        yield return new WaitForSeconds(hitStunDuration);
+        if (agent.isOnNavMesh)
+            agent.isStopped = false;
 
-        if (agent.isOnNavMesh) agent.isStopped = false;
         isStunned = false;
         stunCoroutine = null;
-    }
-
-    private void FlashRed()
-    {
-        foreach (Renderer rend in renderersToFlash)
-        {
-            StartCoroutine(FlashRoutine(rend));
-        }
-    }
-
-    private IEnumerator FlashRoutine(Renderer rend)
-    {
-        if (rend == null) yield break;
-
-        Material mat = rend.material;
-
-        bool hasBaseColor = mat.HasProperty("_BaseColor");
-        bool hasEmission = mat.HasProperty("_EmissionColor");
-
-        Color originalColor = hasBaseColor ? mat.GetColor("_BaseColor") : Color.white;
-        Color originalEmission = hasEmission ? mat.GetColor("_EmissionColor") : Color.black;
-
-        if (hasBaseColor)
-            mat.SetColor("_BaseColor", flashColor);
-
-        if (hasEmission)
-        {
-            mat.EnableKeyword("_EMISSION");
-            mat.SetColor("_EmissionColor", flashColor * 5f);
-        }
-
-        yield return new WaitForSeconds(flashDuration);
-
-        if (hasBaseColor)
-            mat.SetColor("_BaseColor", originalColor);
-
-        if (hasEmission)
-        {
-            mat.SetColor("_EmissionColor", originalEmission);
-            if (originalEmission == Color.black)
-                mat.DisableKeyword("_EMISSION");
-        }
     }
 
     public void Die()
@@ -281,17 +255,14 @@ public class EnemyMovement : MonoBehaviour
         isDead = true;
         canMove = false;
 
-        // Arrête le NavMeshAgent
         if (agent.isOnNavMesh)
         {
             agent.ResetPath();
             agent.isStopped = true;
         }
 
-        // ❌ Désactive le NavMeshAgent complètement
         agent.enabled = false;
 
-        // Bloque les mouvements physiques
         Rigidbody rb = GetComponent<Rigidbody>();
         if (rb)
         {
@@ -301,11 +272,9 @@ public class EnemyMovement : MonoBehaviour
             rb.constraints = RigidbodyConstraints.FreezeAll;
         }
 
-        // Désactive le collider
         Collider col = GetComponent<Collider>();
         if (col) col.enabled = false;
 
-        // Joue une animation de mort
         int randomDeath = Random.Range(0, 4);
         animator.SetInteger("DeathIndex", randomDeath);
         animator.SetTrigger("Die");

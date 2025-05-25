@@ -58,6 +58,8 @@ public class Health : MonoBehaviour
 
     public void TakeDamage(int amount)
     {
+        Debug.Log($"[HEALTH] {gameObject.name} reçoit {amount} points de dégâts.");
+
         if (isDead) return;
 
         currentHealth -= amount;
@@ -72,6 +74,7 @@ public class Health : MonoBehaviour
         if (currentHealth <= 0)
             Die();
     }
+
 
     public void RestoreHealth(int amount)
     {
