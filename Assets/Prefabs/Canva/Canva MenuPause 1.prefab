@@ -281,6 +281,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   optionsMenu: {fileID: 0}
   mainMenu: {fileID: 1383715807912073351}
+  navigateAudioSource: {fileID: 5549818911613715803, guid: 4332f46104f729f469a62d7b0a4d3c7f,
+    type: 3}
+  selectAudioSource: {fileID: 5636941965276759081, guid: 370db8486be265347b99b97809a7ff0e,
+    type: 3}
 --- !u!1 &1642345599881685150
 GameObject:
   m_ObjectHideFlags: 0

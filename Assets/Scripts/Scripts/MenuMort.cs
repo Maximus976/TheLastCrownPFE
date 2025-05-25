@@ -5,21 +5,22 @@ using UnityEngine.SceneManagement;
 using UnityEngine.EventSystems;
 public class MenuMort : MonoBehaviour
 {
-    public GameObject pauseMenuUI;       // Panel contenant le menu de mort + boutons
-    public GameOverUI gameOverUI;        // Script GameOverUI pour séquence d'affichage
+    public GameObject pauseMenuUI;
+    public GameOverUI gameOverUI;
     public GameObject[] menuButtons;
     public GameObject leafPrefab;
-    public UnityEngine.Rendering.Volume globalVolume;  // Pour activer le flou
-
-    [Header("Nom de la scène à recharger")]
+    public UnityEngine.Rendering.Volume globalVolume;
     public string sceneRetryName = "Tutoriel_Stable";
 
     private int currentIndex = 0;
     private bool isPaused = false;
     private bool inputLocked = false;
-
     private GameObject currentLeaf;
     private PauseMenuItem[] menuItems;
+
+    [Header("Audio")]
+    public AudioSource navigateAudioSource;
+    public AudioSource selectAudioSource;
 
     void Start()
     {
@@ -55,13 +56,17 @@ public class MenuMort : MonoBehaviour
                 currentIndex = (currentIndex - 1 + menuButtons.Length) % menuButtons.Length;
 
             if (previousIndex != currentIndex)
+            {
+                PlayNavigateSound();
                 UpdateSelection();
+            }
 
             StartCoroutine(UnlockInputAfterDelay(0.2f));
         }
 
         if (!inputLocked && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.JoystickButton1)))
         {
+            PlaySelectSound();
             SelectButton(currentIndex);
         }
     }
@@ -94,7 +99,6 @@ public class MenuMort : MonoBehaviour
             globalVolume.enabled = true;
 
         Time.timeScale = 0f;
-
         StartCoroutine(ShowMenuSequence());
     }
 
@@ -123,8 +127,7 @@ public class MenuMort : MonoBehaviour
                 while (elapsed < duration)
                 {
                     elapsed += Time.unscaledDeltaTime;
-                    float t = Mathf.Clamp01(elapsed / duration);
-                    group.alpha = t;
+                    group.alpha = Mathf.Clamp01(elapsed / duration);
                     yield return null;
                 }
                 group.alpha = 1f;
@@ -140,15 +143,9 @@ public class MenuMort : MonoBehaviour
     {
         switch (index)
         {
-            case 0:
-                RetryScene();
-                break;
-            case 1:
-                ReturnToMainMenu();
-                break;
-            case 2:
-                QuitGame();
-                break;
+            case 0: RetryScene(); break;
+            case 1: ReturnToMainMenu(); break;
+            case 2: QuitGame(); break;
         }
     }
 
@@ -157,10 +154,7 @@ public class MenuMort : MonoBehaviour
         Time.timeScale = 1f;
         if (globalVolume != null)
             globalVolume.enabled = false;
-
-        // RESET des objets collectés à chaque nouvelle partie
         ObjectCollectable.ResetCollectables();
-
         SceneManager.LoadScene(sceneRetryName);
     }
 
@@ -169,10 +163,7 @@ public class MenuMort : MonoBehaviour
         Time.timeScale = 1f;
         if (globalVolume != null)
             globalVolume.enabled = false;
-
-        // RESET des objets collectés
         ObjectCollectable.ResetCollectables();
-
         SceneManager.LoadScene("Menu");
     }
 
@@ -180,9 +171,20 @@ public class MenuMort : MonoBehaviour
     {
         Debug.Log("Quitter le jeu");
         Application.Quit();
-
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
 #endif
+    }
+
+    private void PlayNavigateSound()
+    {
+        if (navigateAudioSource != null)
+            navigateAudioSource.Play();
+    }
+
+    private void PlaySelectSound()
+    {
+        if (selectAudioSource != null)
+            selectAudioSource.Play();
     }
 }

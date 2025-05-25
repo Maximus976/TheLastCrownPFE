@@ -17,6 +17,9 @@ public class EnemyHealth : MonoBehaviour
     private EnemyMovement standardAI;
     private Animator animator;
 
+    [Header("Boss Settings")]
+    [SerializeField] private bool isBoss = false; // ✅ À cocher dans l'Inspector pour le boss
+
     private void Start()
     {
         currentHealth = maxHealth;
@@ -81,6 +84,18 @@ public class EnemyHealth : MonoBehaviour
 
         Collider col = GetComponent<Collider>();
         if (col != null) col.enabled = false;
+
+        if (standardAI != null)
+        {
+            standardAI.Die();
+        }
+
+        // ✅ Si c’est un boss, on lance la séquence de fin
+        if (isBoss)
+        {
+            Debug.Log("Boss vaincu – lancement de la séquence de fin");
+            FindObjectOfType<FinNarrative>()?.StartFinSequence();
+        }
 
         StartCoroutine(DelayedCleanup());
     }

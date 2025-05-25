@@ -7,21 +7,34 @@ public class Destructible : MonoBehaviour
 {
     [Header("Paramètres de l'objet")]
     public int health = 100;
+
+    [Header("Effets visuels")]
     public GameObject destructionEffect;
     public GameObject destructionEffect2;
-    public GameObject destructionEffect3; // Effet d'étoiles de soin
-    public GameObject impactEffect;       // ?? Effet d'impact à l'impact
+    public GameObject destructionEffect3;
+    public GameObject impactEffect;
+
+    [Header("Effets sonores")]
+    public AudioClip impactSound;
+    public AudioClip destroySound;
+    public float soundVolume = 1f;
 
     public void TakeDamage(int damage)
     {
         health -= damage;
         Debug.Log($"{gameObject.name} took {damage} damage. Remaining HP: {health}");
 
-        // ?? Instancier l'effet d'impact à la position actuelle
+        // Effet d'impact visuel
         if (impactEffect != null)
         {
             GameObject impact = Instantiate(impactEffect, transform.position, transform.rotation);
-            Destroy(impact, 2f); // Durée de vie de l'effet d'impact
+            Destroy(impact, 2f);
+        }
+
+        // Son d'impact
+        if (impactSound != null)
+        {
+            AudioSource.PlayClipAtPoint(impactSound, transform.position, soundVolume);
         }
 
         if (health <= 0)
@@ -34,13 +47,20 @@ public class Destructible : MonoBehaviour
     {
         if (destructionEffect != null)
         {
+            // Effet de destruction principal
             GameObject effect1 = Instantiate(destructionEffect, transform.position, transform.rotation);
-            Instantiate(destructionEffect2, transform.position, transform.rotation);
+
+            // ?? Jouer le son exactement quand l’effet apparaît
+            if (destroySound != null)
+            {
+                AudioSource.PlayClipAtPoint(destroySound, transform.position, soundVolume);
+            }
+
+            if (destructionEffect2 != null)
+                Instantiate(destructionEffect2, transform.position, transform.rotation);
 
             if (destructionEffect3 != null)
-            {
                 Instantiate(destructionEffect3, transform.position, transform.rotation);
-            }
 
             Destroy(effect1, 5f);
         }
