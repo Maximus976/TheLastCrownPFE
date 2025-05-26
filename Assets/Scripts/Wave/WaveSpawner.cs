@@ -26,6 +26,8 @@ public class WaveSpawner : MonoBehaviour
     {
         public Transform[] objets;
         public CinemachineVirtualCamera camera;
+        public float descenteDistance = 10f;
+        public float descenteDuree = 2f;
     }
 
     [System.Serializable]
@@ -33,6 +35,8 @@ public class WaveSpawner : MonoBehaviour
     {
         public Transform[] objets;
         public CinemachineVirtualCamera camera;
+        public float monteeDistance = 10f;
+        public float monteeDuree = 2f;
     }
 
     public List<Wave> waves;
@@ -41,24 +45,20 @@ public class WaveSpawner : MonoBehaviour
 
     private List<GameObject> currentEnemies = new List<GameObject>();
 
-    [Header("Groupes de montée/descente")]
+    [Header("Groupes de montée")]
     public List<MonteeGroupe> groupesDeMontee;
-    public float monteeDistance = 10f;
-    public float monteeDuree = 2f;
 
     [Header("Groupes de descente finale")]
     public List<DescenteGroupe> groupesDeDescente;
-    public float descenteDistance = 10f;
-    public float descenteDuree = 2f;
 
     [Header("Caméra par défaut")]
     public CinemachineVirtualCamera defaultCamera;
 
-    private Vector3 moveOffset;
+    // Stocke les positions de départ
+    private Dictionary<Transform, Vector3> positionsInitiales = new Dictionary<Transform, Vector3>();
 
     private void Start()
     {
-        moveOffset = new Vector3(0f, monteeDistance, 0f);
         StartCoroutine(DescenteInitiale());
     }
 
@@ -69,7 +69,14 @@ public class WaveSpawner : MonoBehaviour
             foreach (Transform obj in groupe.objets)
             {
                 if (obj != null)
-                    obj.position -= moveOffset;
+                {
+                    // Sauvegarder la position de départ
+                    if (!positionsInitiales.ContainsKey(obj))
+                        positionsInitiales[obj] = obj.position;
+
+                    // Déplacer vers le bas
+                    obj.position -= new Vector3(0f, groupe.monteeDistance, 0f);
+                }
             }
         }
         yield return null;
@@ -160,8 +167,8 @@ public class WaveSpawner : MonoBehaviour
             List<Coroutine> animations = new List<Coroutine>();
             foreach (Transform obj in groupe.objets)
             {
-                if (obj != null)
-                    animations.Add(StartCoroutine(FaireMonteeEtAttendre(obj)));
+                if (obj != null && positionsInitiales.ContainsKey(obj))
+                    animations.Add(StartCoroutine(DeplacementVersPosition(obj, positionsInitiales[obj], groupe.monteeDuree)));
             }
 
             foreach (Coroutine anim in animations)
@@ -187,7 +194,7 @@ public class WaveSpawner : MonoBehaviour
             foreach (Transform obj in groupe.objets)
             {
                 if (obj != null)
-                    animations.Add(StartCoroutine(FaireDescenteEtAttendre(obj)));
+                    animations.Add(StartCoroutine(FaireDescenteEtAttendre(obj, groupe.descenteDistance, groupe.descenteDuree)));
             }
 
             foreach (Coroutine anim in animations)
@@ -200,31 +207,30 @@ public class WaveSpawner : MonoBehaviour
         }
     }
 
-    IEnumerator FaireMonteeEtAttendre(Transform obj)
+    IEnumerator DeplacementVersPosition(Transform obj, Vector3 cible, float duree)
     {
         Vector3 start = obj.position;
-        Vector3 end = start + moveOffset;
         float elapsed = 0f;
 
-        while (elapsed < monteeDuree)
+        while (elapsed < duree)
         {
-            obj.position = Vector3.Lerp(start, end, elapsed / monteeDuree);
+            obj.position = Vector3.Lerp(start, cible, elapsed / duree);
             elapsed += Time.deltaTime;
             yield return null;
         }
 
-        obj.position = end;
+        obj.position = cible;
     }
 
-    IEnumerator FaireDescenteEtAttendre(Transform obj)
+    IEnumerator FaireDescenteEtAttendre(Transform obj, float distance, float duree)
     {
         Vector3 start = obj.position;
-        Vector3 end = start - moveOffset;
+        Vector3 end = start - new Vector3(0f, distance, 0f);
         float elapsed = 0f;
 
-        while (elapsed < descenteDuree)
+        while (elapsed < duree)
         {
-            obj.position = Vector3.Lerp(start, end, elapsed / descenteDuree);
+            obj.position = Vector3.Lerp(start, end, elapsed / duree);
             elapsed += Time.deltaTime;
             yield return null;
         }
