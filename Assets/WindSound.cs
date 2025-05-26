@@ -1,4 +1,4 @@
-using System.Collections;
+/*using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -47,4 +47,4 @@ public class WindSound : MonoBehaviour
         if (audioSource.isPlaying)
             audioSource.Stop();
     }
-}
+}*/
