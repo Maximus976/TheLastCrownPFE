@@ -18,7 +18,11 @@ public class EnemyHealth : MonoBehaviour
     private Animator animator;
 
     [Header("Boss Settings")]
-    [SerializeField] private bool isBoss = false; // À cocher dans l'Inspector pour le boss
+    [SerializeField] private bool isBoss = false;
+
+    [Header("Audio")]
+    [SerializeField] private AudioSource hitAudioSource; // Utilisé pour jouer les sons de hit
+    [SerializeField] private AudioClip[] hitClips; // Tableau de sons de hit
 
     private void Start()
     {
@@ -26,7 +30,7 @@ public class EnemyHealth : MonoBehaviour
         UpdateHealthBar();
 
         mage = GetComponent<MageEnemy>();
-        standardAI = GetComponent<EnemyMovement>(); // correction ici
+        standardAI = GetComponent<EnemyMovement>();
         animator = GetComponent<Animator>();
     }
 
@@ -37,6 +41,8 @@ public class EnemyHealth : MonoBehaviour
         currentHealth -= amount;
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
         UpdateHealthBar();
+
+        PlayRandomHitSound();
 
         if (mage != null)
         {
@@ -51,6 +57,15 @@ public class EnemyHealth : MonoBehaviour
         if (currentHealth <= 0)
         {
             Die();
+        }
+    }
+
+    private void PlayRandomHitSound()
+    {
+        if (hitAudioSource != null && hitClips != null && hitClips.Length > 0)
+        {
+            AudioClip randomClip = hitClips[Random.Range(0, hitClips.Length)];
+            hitAudioSource.PlayOneShot(randomClip);
         }
     }
 
@@ -90,7 +105,6 @@ public class EnemyHealth : MonoBehaviour
             standardAI.Die();
         }
 
-        // ✅ Si c’est un boss, on lance la séquence de fin
         if (isBoss)
         {
             Debug.Log("Boss vaincu – lancement de la séquence de fin");
