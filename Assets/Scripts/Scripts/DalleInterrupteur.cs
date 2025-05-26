@@ -14,6 +14,10 @@ public class DalleInterrupteur : MonoBehaviour
     public float vitessePilliers = 1f;
     public float delaiEntrePilliers = 1f;
 
+    [Header("Sons")]
+    public AudioSource pillier1Sound;
+    public AudioSource pillier2Sound;
+
     private Vector3 dalleInitPos;
     private bool actif = false;
 
@@ -42,6 +46,9 @@ public class DalleInterrupteur : MonoBehaviour
         }
 
         // 2. Lever le premier pillier
+        if (pillier1Sound != null)
+            pillier1Sound.Play();
+
         Vector3 posP1Init = pillier1.position;
         Vector3 posP1Final = posP1Init + new Vector3(0, hauteurPilliers, 0);
         while (Vector3.Distance(pillier1.position, posP1Final) > 0.01f)
@@ -54,6 +61,9 @@ public class DalleInterrupteur : MonoBehaviour
         yield return new WaitForSeconds(delaiEntrePilliers);
 
         // 4. Lever le second pillier
+        if (pillier2Sound != null)
+            pillier2Sound.Play();
+
         Vector3 posP2Init = pillier2.position;
         Vector3 posP2Final = posP2Init + new Vector3(0, hauteurPilliers, 0);
         while (Vector3.Distance(pillier2.position, posP2Final) > 0.01f)
