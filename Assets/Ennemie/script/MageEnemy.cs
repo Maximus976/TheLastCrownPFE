@@ -35,6 +35,7 @@ public class MageEnemy : MonoBehaviour
     [SerializeField] private float flashDuration = 0.1f;
 
     [Header("Hit Reaction")]
+    [SerializeField] private float stunDuration = 1f;
     [SerializeField] private float hitStunDuration = 0.2f;
     [SerializeField] private float knockbackForce = 2f;
     [SerializeField] private float knockbackTime = 0.15f;
@@ -269,46 +270,35 @@ public class MageEnemy : MonoBehaviour
     {
         if (isStunned || (health != null && health.IsDead)) return;
 
-        wasRecentlyHit = true;
-        currentState = MageState.Attacking;
-        lastAttackTime = Time.time;
-
-        ForceStopMovement();
-
-        if (animator != null)
-        {
-            animator.SetFloat("Speed", 0f);
-            animator.SetInteger("HitTypeMage", 0);
-        }
-
-        int hitType = Random.Range(1, 3);
-        if (animator != null)
-        {
-            animator.SetInteger("HitType", hitType);
-            animator.Update(0);
-            animator.SetInteger("HitType", 0);
-        }
-
         if (stunCoroutine != null)
             StopCoroutine(stunCoroutine);
 
-        stunCoroutine = StartCoroutine(HitReactionRoutine(hitType));
+        int hitType = Random.Range(1, 3); // 1 ou 2
+        string triggerName = hitType == 1 ? "Hit1" : "Hit2";
 
-        if (meshRenderer != null)
-            StartCoroutine(FlashColor());
+        // Forcer la relance de l'animation
+        animator.ResetTrigger("Hit1");
+        animator.ResetTrigger("Hit2");
+        animator.Play("Idle"); // ou un état neutre
+        animator.SetTrigger(triggerName);
+
+        stunCoroutine = StartCoroutine(HitReactionRoutine(hitType));
+        StartCoroutine(FlashColor());
     }
+
 
     private IEnumerator HitReactionRoutine(int hitType)
     {
         isStunned = true;
-        if (agent.isOnNavMesh) agent.isStopped = true;
 
-        ForceStopMovement();
+        if (agent.isOnNavMesh)
+            agent.isStopped = true;
 
         if (hitType == 2)
         {
             Vector3 dir = (transform.position - target.position).normalized;
-            dir.y = 0;
+            dir.y = 0f;
+
             float timer = 0f;
             while (timer < knockbackTime)
             {
@@ -322,13 +312,14 @@ public class MageEnemy : MonoBehaviour
             yield return new WaitForSeconds(knockbackTime);
         }
 
-        yield return new WaitForSeconds(hitStunDuration);
+        yield return new WaitForSeconds(stunDuration);
 
         if (agent.isOnNavMesh) agent.isStopped = false;
+
         isStunned = false;
-        wasRecentlyHit = false;
         stunCoroutine = null;
     }
+
 
     private IEnumerator FlashColor()
     {

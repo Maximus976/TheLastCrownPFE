@@ -16,13 +16,18 @@ public class EnemyMovement : MonoBehaviour
     [SerializeField] private float patrolSpeed = 2f;
     [SerializeField] private float stopDistance = 2f;
 
-    [Header("Idle Timing")]
-    [SerializeField] private float idlePauseTime = 1.5f;
-
     [Header("Attack Settings")]
     [SerializeField] private int damage = 10;
     [SerializeField] private float attackCooldown = 1.5f;
     [SerializeField] private float attackDelay = 0.5f;
+
+    [Header("Stun / Flash / Hit Reaction")]
+    [SerializeField] private float stunDuration = 1f;
+    [SerializeField] private SkinnedMeshRenderer[] meshRenderers;
+    [SerializeField] private Color flashColor = Color.white;
+    [SerializeField] private float flashDuration = 0.1f;
+    [SerializeField] private float knockbackForce = 2f;
+    [SerializeField] private float knockbackTime = 0.15f;
 
     private NavMeshAgent agent;
     private Animator animator;
@@ -35,7 +40,6 @@ public class EnemyMovement : MonoBehaviour
     private float attackTimer = 0f;
     private bool isDead = false;
     private bool isStunned = false;
-    private bool canMove = true;
 
     private Coroutine stunCoroutine;
 
@@ -56,7 +60,7 @@ public class EnemyMovement : MonoBehaviour
 
     void Update()
     {
-        if (isDead || isStunned || !canMove) return;
+        if (isDead || isStunned) return;
 
         playerTarget = FindClosestPlayer();
         if (playerTarget == null) return;
@@ -68,7 +72,6 @@ public class EnemyMovement : MonoBehaviour
         {
             if (distanceToPlayer > stopDistance)
             {
-                // Toujours en chasse
                 isAttacking = false;
                 if (agent.isOnNavMesh)
                 {
@@ -79,25 +82,27 @@ public class EnemyMovement : MonoBehaviour
             }
             else
             {
-                // Trop proche -> arrêt
                 if (agent.isOnNavMesh)
                 {
                     agent.isStopped = true;
                     agent.velocity = Vector3.zero;
                 }
 
-                // Peut attaquer si cooldown terminé
                 if (attackTimer <= 0f && !isAttacking)
                 {
                     StartAttack();
                 }
             }
         }
-
-
-        if (agent.isOnNavMesh && canMove)
+        else
         {
-            transform.position = agent.nextPosition;
+            Patrol();
+        }
+
+        if (agent.isOnNavMesh)
+        {
+            if (!isStunned)
+                transform.position = agent.nextPosition;
 
             Vector3 velocity = agent.desiredVelocity;
             if (velocity != Vector3.zero)
@@ -196,7 +201,7 @@ public class EnemyMovement : MonoBehaviour
         isWaiting = true;
         if (agent.isOnNavMesh) agent.isStopped = true;
 
-        yield return new WaitForSeconds(idlePauseTime);
+        yield return new WaitForSeconds(1f);
 
         Vector3 randomDirection = Random.insideUnitSphere * patrolRadius;
         randomDirection += initialPosition;
@@ -214,46 +219,109 @@ public class EnemyMovement : MonoBehaviour
 
     public void ReactToHit(Vector3 attackerPosition)
     {
-        if (isDead || isStunned) return;
-
-        isStunned = true;
-
-        Vector3 dir = (transform.position - attackerPosition).normalized;
-        dir.y = 0;
+        if (isDead) return;
 
         if (stunCoroutine != null)
             StopCoroutine(stunCoroutine);
 
-        stunCoroutine = StartCoroutine(HitReaction(dir));
+        int hitType = Random.Range(1, 3); // 1 ou 2
+        string triggerName = hitType == 1 ? "Hit1" : "Hit2";
+
+        // Forcer l'animation à redémarrer même si elle est déjà en cours
+        animator.ResetTrigger("Hit1");
+        animator.ResetTrigger("Hit2");
+        animator.Play("Idle"); // ou un état neutre pour reset proprement
+        animator.SetTrigger(triggerName);
+
+        stunCoroutine = StartCoroutine(HitReactionRoutine(hitType, attackerPosition));
     }
 
-    private IEnumerator HitReaction(Vector3 direction)
+
+
+    private IEnumerator HitReactionRoutine(int hitType, Vector3 attackerPosition)
     {
-        float knockbackDuration = 0.15f;
-        float timer = 0f;
+        isStunned = true;
 
         if (agent.isOnNavMesh)
             agent.isStopped = true;
 
-        while (timer < knockbackDuration)
+        FlashWhite();
+
+        if (hitType == 2)
         {
-            transform.position += direction * 2f * Time.deltaTime;
-            timer += Time.deltaTime;
-            yield return null;
+            Vector3 dir = (transform.position - attackerPosition).normalized;
+            dir.y = 0f;
+
+            float timer = 0f;
+            while (timer < knockbackTime)
+            {
+                agent.Move(dir * knockbackForce * Time.deltaTime);
+                timer += Time.deltaTime;
+                yield return null;
+            }
         }
+        else
+        {
+            yield return new WaitForSeconds(knockbackTime);
+        }
+
+        yield return new WaitForSeconds(stunDuration);
 
         if (agent.isOnNavMesh)
             agent.isStopped = false;
 
         isStunned = false;
         stunCoroutine = null;
+
+        agent.nextPosition = transform.position;
+    }
+
+    private void FlashWhite()
+    {
+        foreach (var rend in meshRenderers)
+        {
+            StartCoroutine(FlashRoutine(rend));
+        }
+    }
+
+    private IEnumerator FlashRoutine(SkinnedMeshRenderer rend)
+    {
+        if (rend == null) yield break;
+
+        Material mat = rend.material;
+
+        bool hasBaseColor = mat.HasProperty("_BaseColor");
+        bool hasEmission = mat.HasProperty("_EmissionColor");
+
+        Color originalColor = hasBaseColor ? mat.GetColor("_BaseColor") : Color.white;
+        Color originalEmission = hasEmission ? mat.GetColor("_EmissionColor") : Color.black;
+
+        if (hasBaseColor)
+            mat.SetColor("_BaseColor", flashColor);
+
+        if (hasEmission)
+        {
+            mat.EnableKeyword("_EMISSION");
+            mat.SetColor("_EmissionColor", flashColor * 5f); // plus lumineux
+        }
+
+        yield return new WaitForSeconds(flashDuration);
+
+        if (hasBaseColor)
+            mat.SetColor("_BaseColor", originalColor);
+
+        if (hasEmission)
+        {
+            mat.SetColor("_EmissionColor", originalEmission);
+            if (originalEmission == Color.black)
+                mat.DisableKeyword("_EMISSION");
+        }
     }
 
     public void Die()
     {
         if (isDead) return;
         isDead = true;
-        canMove = false;
 
         if (agent.isOnNavMesh)
         {
@@ -284,10 +352,8 @@ public class EnemyMovement : MonoBehaviour
     {
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, detectionRange);
-
         Gizmos.color = Color.green;
         Gizmos.DrawWireSphere(transform.position, patrolRadius);
-
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, stopDistance);
     }

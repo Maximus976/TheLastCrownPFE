@@ -4,12 +4,12 @@ using UnityEngine;
 
 public class PalesMoulin : MonoBehaviour
 {
-    [SerializeField] private float rotationSpeed = 100f; // Vitesse de rotation ajustable dans l'inspecteur
+    [SerializeField] private float rotationSpeed = 100f; 
 
     void Update()
     {
-        // Fait tourner les pales autour de l'axe Y
-        transform.Rotate(Vector3.forward, rotationSpeed * Time.deltaTime);
+        // Rotation autour de l’axe X global (de la scène)
+        transform.Rotate(Vector3.forward, rotationSpeed * Time.deltaTime, Space.World);
     }
 
     // Permet de régler la vitesse via un autre script ou une interface
@@ -18,4 +18,3 @@ public class PalesMoulin : MonoBehaviour
         rotationSpeed = speed;
     }
 }
-
