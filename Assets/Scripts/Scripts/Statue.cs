@@ -41,7 +41,7 @@ public class Statue : MonoBehaviour
             }
             else
             {
-                ShowMissingPanel("Il vous manque encore des fragments à récupérer...");
+                ShowMissingPanel("La statue reste silencieuse. Il vous manque des objets.");
             }
         }
     }
