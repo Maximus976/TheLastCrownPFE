@@ -24,8 +24,15 @@ public class WaveSpawner : MonoBehaviour
     [System.Serializable]
     public class DescenteGroupe
     {
-        public Transform[] objets; // Objets à descendre ensemble
-        public CinemachineVirtualCamera camera; // Caméra du groupe
+        public Transform[] objets;
+        public CinemachineVirtualCamera camera;
+    }
+
+    [System.Serializable]
+    public class MonteeGroupe
+    {
+        public Transform[] objets;
+        public CinemachineVirtualCamera camera;
     }
 
     public List<Wave> waves;
@@ -34,7 +41,12 @@ public class WaveSpawner : MonoBehaviour
 
     private List<GameObject> currentEnemies = new List<GameObject>();
 
-    [Header("Groupes de descente")]
+    [Header("Groupes de montée/descente")]
+    public List<MonteeGroupe> groupesDeMontee;
+    public float monteeDistance = 2f;
+    public float monteeDuree = 2f;
+
+    [Header("Groupes de descente finale")]
     public List<DescenteGroupe> groupesDeDescente;
     public float descenteDistance = 2f;
     public float descenteDuree = 2f;
@@ -42,13 +54,39 @@ public class WaveSpawner : MonoBehaviour
     [Header("Caméra par défaut")]
     public CinemachineVirtualCamera defaultCamera;
 
+    private void Start()
+    {
+        StartCoroutine(DescenteInitiale());
+    }
+
+    private IEnumerator DescenteInitiale()
+    {
+        foreach (var groupe in groupesDeMontee)
+        {
+            foreach (Transform obj in groupe.objets)
+            {
+                if (obj != null)
+                    obj.position -= new Vector3(0f, monteeDistance, 0f);
+            }
+        }
+        yield return null;
+    }
+
     public void StartFirstWave()
     {
         if (!waveInProgress && currentWaveIndex == 0)
         {
-            Debug.Log("Déclenchement de la première vague");
-            StartCoroutine(SpawnWave(currentWaveIndex));
+            Debug.Log("Début des vagues : montée des objets...");
+            StartCoroutine(LancerVagueAvecMontée());
         }
+    }
+
+    private IEnumerator LancerVagueAvecMontée()
+    {
+        yield return StartCoroutine(MonteeParGroupe());
+
+        Debug.Log("Montée terminée. Début de la première vague !");
+        StartCoroutine(SpawnWave(currentWaveIndex));
     }
 
     IEnumerator SpawnWave(int waveIndex)
@@ -107,32 +145,27 @@ public class WaveSpawner : MonoBehaviour
         }
     }
 
-    private IEnumerator DescenteParGroupe()
+    private IEnumerator MonteeParGroupe()
     {
-        foreach (var groupe in groupesDeDescente)
+        foreach (var groupe in groupesDeMontee)
         {
-            // 1. Active la caméra du groupe
             if (groupe.camera != null)
                 groupe.camera.Priority = 20;
 
             if (defaultCamera != null)
                 defaultCamera.Priority = 10;
 
-            // 2. Attendre que la caméra prenne effet
             yield return new WaitForSeconds(0.3f);
 
-            // 3. Lancer la descente de tous les objets
-            List<Coroutine> descentes = new List<Coroutine>();
+            List<Coroutine> montees = new List<Coroutine>();
             foreach (Transform obj in groupe.objets)
             {
                 if (obj != null)
-                    descentes.Add(StartCoroutine(FaireDescenteEtAttendre(obj)));
+                    montees.Add(StartCoroutine(FaireMonteeEtAttendre(obj)));
             }
 
-            // 4. Attendre la durée de la descente
-            yield return new WaitForSeconds(descenteDuree);
+            yield return new WaitForSeconds(monteeDuree);
 
-            // 5. Revenir à la caméra de gameplay
             if (defaultCamera != null)
                 defaultCamera.Priority = 20;
 
@@ -143,10 +176,51 @@ public class WaveSpawner : MonoBehaviour
         }
     }
 
-    private bool TousLesEnnemisElimines()
+    private IEnumerator DescenteParGroupe()
     {
-        currentEnemies.RemoveAll(e => e == null);
-        return currentEnemies.Count == 0;
+        foreach (var groupe in groupesDeDescente)
+        {
+            if (groupe.camera != null)
+                groupe.camera.Priority = 20;
+
+            if (defaultCamera != null)
+                defaultCamera.Priority = 10;
+
+            yield return new WaitForSeconds(0.3f);
+
+            List<Coroutine> descentes = new List<Coroutine>();
+            foreach (Transform obj in groupe.objets)
+            {
+                if (obj != null)
+                    descentes.Add(StartCoroutine(FaireDescenteEtAttendre(obj)));
+            }
+
+            yield return new WaitForSeconds(descenteDuree);
+
+            if (defaultCamera != null)
+                defaultCamera.Priority = 20;
+
+            if (groupe.camera != null)
+                groupe.camera.Priority = 10;
+
+            yield return new WaitForSeconds(0.3f);
+        }
+    }
+
+    IEnumerator FaireMonteeEtAttendre(Transform obj)
+    {
+        Vector3 start = obj.position;
+        Vector3 end = start + new Vector3(0f, monteeDistance, 0f);
+        float elapsed = 0f;
+
+        while (elapsed < monteeDuree)
+        {
+            obj.position = Vector3.Lerp(start, end, elapsed / monteeDuree);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        obj.position = end;
     }
 
     IEnumerator FaireDescenteEtAttendre(Transform obj)
@@ -163,6 +237,12 @@ public class WaveSpawner : MonoBehaviour
         }
 
         obj.position = end;
+    }
+
+    private bool TousLesEnnemisElimines()
+    {
+        currentEnemies.RemoveAll(e => e == null);
+        return currentEnemies.Count == 0;
     }
 
     private void Shuffle<T>(List<T> list)

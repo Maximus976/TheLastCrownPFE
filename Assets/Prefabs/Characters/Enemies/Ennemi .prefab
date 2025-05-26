@@ -276,6 +276,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxHealth: 100
   healthBarFill: {fileID: 0}
+  isBoss: 0
 --- !u!114 &2576460190961167894
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -294,10 +295,16 @@ MonoBehaviour:
   chaseSpeed: 4
   patrolSpeed: 2
   stopDistance: 1.5
-  idlePauseTime: 1.5
   damage: 10
   attackCooldown: 3
   attackDelay: 0.5
+  stunDuration: 1
+  meshRenderers:
+  - {fileID: 9006335229626578844}
+  flashColor: {r: 1, g: 1, b: 1, a: 1}
+  flashDuration: 0.1
+  knockbackForce: 2
+  knockbackTime: 0.35
 --- !u!114 &3413036458225701662
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -332,3 +339,9 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
+--- !u!137 &9006335229626578844 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -468246555611218085, guid: bfa42ba6d484e4e448024c9acf736ce9,
+    type: 3}
+  m_PrefabInstance: {fileID: 395360266860382407}
+  m_PrefabAsset: {fileID: 0}
