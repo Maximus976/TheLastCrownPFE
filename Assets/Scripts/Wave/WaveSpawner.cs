@@ -43,19 +43,22 @@ public class WaveSpawner : MonoBehaviour
 
     [Header("Groupes de montée/descente")]
     public List<MonteeGroupe> groupesDeMontee;
-    public float monteeDistance = 2f;
+    public float monteeDistance = 10f;
     public float monteeDuree = 2f;
 
     [Header("Groupes de descente finale")]
     public List<DescenteGroupe> groupesDeDescente;
-    public float descenteDistance = 2f;
+    public float descenteDistance = 10f;
     public float descenteDuree = 2f;
 
     [Header("Caméra par défaut")]
     public CinemachineVirtualCamera defaultCamera;
 
+    private Vector3 moveOffset;
+
     private void Start()
     {
+        moveOffset = new Vector3(0f, monteeDistance, 0f);
         StartCoroutine(DescenteInitiale());
     }
 
@@ -66,7 +69,7 @@ public class WaveSpawner : MonoBehaviour
             foreach (Transform obj in groupe.objets)
             {
                 if (obj != null)
-                    obj.position -= new Vector3(0f, monteeDistance, 0f);
+                    obj.position -= moveOffset;
             }
         }
         yield return null;
@@ -149,28 +152,23 @@ public class WaveSpawner : MonoBehaviour
     {
         foreach (var groupe in groupesDeMontee)
         {
-            if (groupe.camera != null)
-                groupe.camera.Priority = 20;
-
-            if (defaultCamera != null)
-                defaultCamera.Priority = 10;
+            if (groupe.camera != null) groupe.camera.Priority = 20;
+            if (defaultCamera != null) defaultCamera.Priority = 10;
 
             yield return new WaitForSeconds(0.3f);
 
-            List<Coroutine> montees = new List<Coroutine>();
+            List<Coroutine> animations = new List<Coroutine>();
             foreach (Transform obj in groupe.objets)
             {
                 if (obj != null)
-                    montees.Add(StartCoroutine(FaireMonteeEtAttendre(obj)));
+                    animations.Add(StartCoroutine(FaireMonteeEtAttendre(obj)));
             }
 
-            yield return new WaitForSeconds(monteeDuree);
+            foreach (Coroutine anim in animations)
+                yield return anim;
 
-            if (defaultCamera != null)
-                defaultCamera.Priority = 20;
-
-            if (groupe.camera != null)
-                groupe.camera.Priority = 10;
+            if (defaultCamera != null) defaultCamera.Priority = 20;
+            if (groupe.camera != null) groupe.camera.Priority = 10;
 
             yield return new WaitForSeconds(0.3f);
         }
@@ -180,28 +178,23 @@ public class WaveSpawner : MonoBehaviour
     {
         foreach (var groupe in groupesDeDescente)
         {
-            if (groupe.camera != null)
-                groupe.camera.Priority = 20;
-
-            if (defaultCamera != null)
-                defaultCamera.Priority = 10;
+            if (groupe.camera != null) groupe.camera.Priority = 20;
+            if (defaultCamera != null) defaultCamera.Priority = 10;
 
             yield return new WaitForSeconds(0.3f);
 
-            List<Coroutine> descentes = new List<Coroutine>();
+            List<Coroutine> animations = new List<Coroutine>();
             foreach (Transform obj in groupe.objets)
             {
                 if (obj != null)
-                    descentes.Add(StartCoroutine(FaireDescenteEtAttendre(obj)));
+                    animations.Add(StartCoroutine(FaireDescenteEtAttendre(obj)));
             }
 
-            yield return new WaitForSeconds(descenteDuree);
+            foreach (Coroutine anim in animations)
+                yield return anim;
 
-            if (defaultCamera != null)
-                defaultCamera.Priority = 20;
-
-            if (groupe.camera != null)
-                groupe.camera.Priority = 10;
+            if (defaultCamera != null) defaultCamera.Priority = 20;
+            if (groupe.camera != null) groupe.camera.Priority = 10;
 
             yield return new WaitForSeconds(0.3f);
         }
@@ -210,7 +203,7 @@ public class WaveSpawner : MonoBehaviour
     IEnumerator FaireMonteeEtAttendre(Transform obj)
     {
         Vector3 start = obj.position;
-        Vector3 end = start + new Vector3(0f, monteeDistance, 0f);
+        Vector3 end = start + moveOffset;
         float elapsed = 0f;
 
         while (elapsed < monteeDuree)
@@ -226,7 +219,7 @@ public class WaveSpawner : MonoBehaviour
     IEnumerator FaireDescenteEtAttendre(Transform obj)
     {
         Vector3 start = obj.position;
-        Vector3 end = start - new Vector3(0f, descenteDistance, 0f);
+        Vector3 end = start - moveOffset;
         float elapsed = 0f;
 
         while (elapsed < descenteDuree)
